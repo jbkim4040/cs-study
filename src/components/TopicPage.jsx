@@ -39,6 +39,11 @@ const VIZ = {
   udp: lazy(() => import('./viz/UDPViz.jsx')),
   tcp: lazy(() => import('./viz/TCPViz.jsx')),
   application: lazy(() => import('./viz/ApplicationViz.jsx')),
+  flowcontrol: lazy(() => import('./viz/FlowControlViz.jsx')),
+  jvarray: lazy(() => import('./viz/ArrayMemViz.jsx')),
+  oopbasics: lazy(() => import('./viz/JVMMemoryViz.jsx')),
+  exception: lazy(() => import('./viz/ExceptionViz.jsx')),
+  javalang: lazy(() => import('./viz/StringPoolViz.jsx')),
 }
 
 const CODE_LABEL = { python: '🐍 Python', javascript: '🟡 JavaScript', pseudo: '📋 의사코드', c: '🔧 C', java: '☕ Java' }

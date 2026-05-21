@@ -30,5 +30,5 @@ npm run preview  # 빌드 결과 미리보기
 
 ## 배포
 
-`main` 브랜치가 갱신되면 Jenkins 파이프라인(`Jenkinsfile`)이 WAS 서버에서 빌드 후
-정적 파일을 갱신합니다. 별도 `cs-study` 컨테이너(nginx)가 즉시 서빙합니다.
+Jenkins 파이프라인(`Jenkinsfile`)이 WAS 서버에서 빌드한 뒤 정적 파일을 갱신하고,
+별도 `cs-study` 컨테이너(nginx)가 즉시 서빙합니다 → https://jbdatahub.com/cs-study/

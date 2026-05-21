@@ -1609,3 +1609,94 @@ button { font-family: inherit; cursor: pointer; border: none; }
   .section-title { font-size: 0.98rem; }
   .copy-btn { padding: 4px 9px; font-size: 0.74rem; }
 }
+
+/* ── ADT 인터랙티브 다이어그램 ──────────────────────────── */
+.adt-stage {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.adt-iface-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+.adt-ops { display: flex; flex-wrap: wrap; gap: 6px; }
+.adt-op {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.79rem;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: #f1f5f9;
+  border: 1.5px solid #e2e8f0;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+}
+.adt-op:hover:not(:disabled) { border-color: var(--color); color: var(--color); }
+.adt-op.active { background: var(--color); border-color: var(--color); color: #fff; }
+.adt-op:disabled { opacity: 0.5; cursor: default; }
+.adt-diagram { position: relative; height: 152px; margin: 12px 0 6px; }
+.adt-token {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 4px 12px;
+  border-radius: 7px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+  background: var(--color);
+  color: #fff;
+  white-space: nowrap;
+  box-shadow: 0 5px 14px -4px var(--color);
+  transition: top 0.5s ease, opacity 0.3s ease;
+}
+.adt-token.hidden { opacity: 0; }
+.adt-box {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 98px;
+  border: 2px solid var(--color);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8fafc;
+  transition: box-shadow 0.2s ease;
+}
+.adt-box.working { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color) 20%, transparent); }
+.adt-box-bar {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-align: center;
+  padding: 6px;
+  background: repeating-linear-gradient(45deg, #e2e8f0 0 6px, #f1f5f9 6px 12px);
+  border-bottom: 1.5px dashed var(--color);
+}
+.adt-box-impl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 58px;
+  padding: 8px 14px;
+  text-align: center;
+  font-size: 0.79rem;
+  color: #94a3b8;
+  transition: color 0.2s ease;
+}
+.adt-box.working .adt-box-impl { color: var(--color); font-weight: 700; }
+.adt-status {
+  font-size: 0.8rem;
+  color: #475569;
+  background: #f1f5f9;
+  border-radius: 9px;
+  padding: 9px 13px;
+  margin-bottom: 9px;
+}
+.adt-detail { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.adt-detail-desc { font-size: 0.84rem; color: #334155; flex: 1; min-width: 160px; }

@@ -4,6 +4,7 @@ import RichText from './RichText.jsx'
 import { TOPIC_BY_ID, SUBJECTS, QUIZZES } from '../data/subjects.js'
 import { buildGlossary } from '../lib/glossary.js'
 import NetLayerMap from './NetLayerMap.jsx'
+import ADTDiagram from './ADTDiagram.jsx'
 
 // 시각화는 코드 분할 — 해당 탭을 열 때만 청크를 동적 로드
 const VIZ = {
@@ -223,6 +224,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
           <section className="section">
             <h2 className="section-title">ADT (추상 자료형)</h2>
             <p className="adt-desc">{topic.adt.description}</p>
+            <ADTDiagram adt={topic.adt} color={topic.color} />
             <div className="table-wrap">
               <table className="complexity-table adt-table">
                 <thead><tr><th>연산 시그니처</th><th>설명</th><th>복잡도</th></tr></thead>

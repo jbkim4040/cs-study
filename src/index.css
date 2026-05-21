@@ -1700,3 +1700,91 @@ button { font-family: inherit; cursor: pointer; border: none; }
 }
 .adt-detail { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .adt-detail-desc { font-size: 0.84rem; color: #334155; flex: 1; min-width: 160px; }
+
+/* ── 코드 플레이그라운드 ─────────────────────────────────── */
+.pg {
+  background: #0f172a;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.pg-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.pg-bar-right { display: flex; gap: 6px; }
+.pg-run {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: var(--color);
+  color: #fff;
+  transition: filter 0.15s, opacity 0.15s;
+}
+.pg-run:hover:not(:disabled) { filter: brightness(1.13); }
+.pg-run:disabled { opacity: 0.5; cursor: default; }
+.pg-reset {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(255,255,255,0.08);
+  color: #94a3b8;
+}
+.pg-reset:hover:not(:disabled) { color: #e2e8f0; }
+.pg-reset:disabled { opacity: 0.5; cursor: default; }
+.pg-editor {
+  display: block;
+  width: 100%;
+  min-height: 210px;
+  resize: vertical;
+  padding: 14px 16px;
+  border: none;
+  outline: none;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.84rem;
+  line-height: 1.6;
+  tab-size: 2;
+}
+.pg-output {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  background: #0b1120;
+}
+.pg-output-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px 4px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #64748b;
+}
+.pg-tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+.pg-tag.ok { background: rgba(16,185,129,0.18); color: #34d399; }
+.pg-tag.err { background: rgba(239,68,68,0.18); color: #f87171; }
+.pg-output pre {
+  margin: 0;
+  padding: 2px 16px 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #cbd5e1;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.pg-output.error pre { color: #fca5a5; }

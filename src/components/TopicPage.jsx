@@ -5,6 +5,7 @@ import { TOPIC_BY_ID, SUBJECTS, QUIZZES } from '../data/subjects.js'
 import { buildGlossary } from '../lib/glossary.js'
 import NetLayerMap from './NetLayerMap.jsx'
 import ADTDiagram from './ADTDiagram.jsx'
+import CodePlayground from './CodePlayground.jsx'
 
 // 시각화는 코드 분할 — 해당 탭을 열 때만 청크를 동적 로드
 const VIZ = {
@@ -61,6 +62,8 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
   const cat = subj && subj.categories.find(c => c.id === topic.category)
 
   const codeLangs = Object.keys(topic.code || {})
+  const pgLang = topic.code && topic.code.python ? 'python' : 'javascript'
+  const pgStarter = topic.code ? (topic.code.python || topic.code.javascript) : undefined
   const [codeLang, setCodeLang] = useState(codeLangs[0])
   const [copied, setCopied] = useState(false)
   const [activeSec, setActiveSec] = useState('concept')
@@ -85,6 +88,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
     topic.properties && { key: 'props', label: '특징' },
     { key: 'viz', label: '시각화' },
     { key: 'code', label: '코드' },
+    { key: 'playground', label: '플레이그라운드' },
     { key: 'use', label: '활용' },
     questions.length > 0 && { key: 'quiz', label: '퀴즈' },
   ].filter(Boolean)
@@ -338,6 +342,14 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
           <section className="section">
             <h2 className="section-title">코드</h2>
             {renderCode()}
+          </section>
+        )}
+
+        {activeSec === 'playground' && (
+          <section className="section">
+            <h2 className="section-title">코드 플레이그라운드</h2>
+            <p className="adt-desc">직접 코드를 작성하고 실행해 결과를 확인하세요 — JavaScript·Python을 브라우저에서 바로 실행합니다.</p>
+            <CodePlayground starterLang={pgLang} starterCode={pgStarter} color={topic.color} />
           </section>
         )}
 

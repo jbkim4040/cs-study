@@ -80,7 +80,7 @@ export default function Sidebar({
         <input
           type="text"
           className="search-input"
-          placeholder="🔍 전체 주제 검색…"
+          placeholder="전체 주제 검색…"
           value={query}
           onChange={e => setQuery(e.target.value)}
         />
@@ -111,14 +111,14 @@ export default function Sidebar({
           onClick={onToggleGlossary}
           aria-pressed={glossaryOn}
         >
-          <span>📖 키워드 용어 풀이</span>
+          <span>키워드 용어 풀이</span>
           <span className="gt-switch"><span className="gt-knob" /></span>
         </button>
         <button
           className={'full-quiz-btn' + (isFullQuiz ? ' active' : '')}
           onClick={onFullQuiz}
         >
-          🎯 {activeSubject.label} 전체 퀴즈
+          {activeSubject.label} 전체 퀴즈
           {scores['__full_' + subject] != null && (
             <span className="fq-score">최고 점수 {scores['__full_' + subject]}점</span>
           )}

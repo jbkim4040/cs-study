@@ -46,7 +46,11 @@ const VIZ = {
   javalang: lazy(() => import('./viz/StringPoolViz.jsx')),
 }
 
-const CODE_LABEL = { python: '🐍 Python', javascript: '🟡 JavaScript', pseudo: '📋 의사코드', c: '🔧 C', java: '☕ Java' }
+const CODE_LABEL = {
+  python: 'Python', javascript: 'JavaScript', typescript: 'TypeScript',
+  java: 'Java', c: 'C', cpp: 'C++', csharp: 'C#', go: 'Go',
+  kotlin: 'Kotlin', rust: 'Rust', pseudo: '의사코드',
+}
 
 export default function TopicPage({ id, markVisited, recordScore, glossaryOn, onSelect }) {
   const topic = TOPIC_BY_ID[id]
@@ -69,19 +73,19 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
   useEffect(() => { markVisited?.(id) }, [id, markVisited])
 
   const sections = [
-    { key: 'concept', label: '개념', icon: '💡' },
-    topic.classification && { key: 'class', label: '분류', icon: '🗂' },
-    topic.terminology && { key: 'term', label: '용어', icon: '📖' },
-    topic.mechanism && { key: 'mech', label: '동작 원리', icon: '⚡' },
-    topic.adt && { key: 'adt', label: 'ADT', icon: '🔧' },
-    topic.complexity && { key: 'complexity', label: '복잡도', icon: '⏱' },
-    topic.comparison && { key: 'compare', label: '비교', icon: '⚖️' },
-    topic.representation && { key: 'repr', label: '표현', icon: '🏗' },
-    topic.properties && { key: 'props', label: '특징', icon: '📐' },
-    { key: 'viz', label: '시각화', icon: '🎮' },
-    { key: 'code', label: '코드', icon: '💻' },
-    { key: 'use', label: '활용', icon: '🚀' },
-    questions.length > 0 && { key: 'quiz', label: '퀴즈', icon: '✏️' },
+    { key: 'concept', label: '개념' },
+    topic.classification && { key: 'class', label: '분류' },
+    topic.terminology && { key: 'term', label: '용어' },
+    topic.mechanism && { key: 'mech', label: '동작 원리' },
+    topic.adt && { key: 'adt', label: 'ADT' },
+    topic.complexity && { key: 'complexity', label: '복잡도' },
+    topic.comparison && { key: 'compare', label: '비교' },
+    topic.representation && { key: 'repr', label: '표현' },
+    topic.properties && { key: 'props', label: '특징' },
+    { key: 'viz', label: '시각화' },
+    { key: 'code', label: '코드' },
+    { key: 'use', label: '활용' },
+    questions.length > 0 && { key: 'quiz', label: '퀴즈' },
   ].filter(Boolean)
 
   const idx = Math.max(0, sections.findIndex(s => s.key === activeSec))
@@ -98,6 +102,28 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
       setCopied(true)
       setTimeout(() => setCopied(false), 1800)
     })
+  }
+
+  // 코드 블록 — 코드 탭과 시각화 탭에서 공통으로 사용 (한 번에 하나만 렌더)
+  function renderCode() {
+    return (
+      <div className="code-block">
+        <div className="code-header">
+          <select
+            className="lang-select"
+            value={codeLang}
+            onChange={e => setCodeLang(e.target.value)}
+            aria-label="코드 언어 선택"
+          >
+            {codeLangs.map(lang => (
+              <option key={lang} value={lang}>{CODE_LABEL[lang] || lang}</option>
+            ))}
+          </select>
+          <button className="copy-btn" onClick={copyCode}>{copied ? '복사됨' : '복사'}</button>
+        </div>
+        <pre className="code-pre"><code>{topic.code[codeLang]}</code></pre>
+      </div>
+    )
   }
 
   return (
@@ -125,7 +151,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
             className={'toc-chip' + (activeSec === s.key ? ' active' : '')}
             onClick={() => selectSec(s.key)}
           >
-            <span className="toc-icon">{s.icon}</span>{s.label}
+            {s.label}
           </button>
         ))}
       </nav>
@@ -133,7 +159,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
       <div className="topic-sections">
         {activeSec === 'concept' && (
           <section className="section">
-            <h2 className="section-title">💡 개념</h2>
+            <h2 className="section-title">개념</h2>
             <div className="concept-cards">
               {topic.concept.map((c, i) => (
                 <div key={i} className="concept-card">
@@ -152,7 +178,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
 
         {activeSec === 'class' && (
           <section className="section">
-            <h2 className="section-title">🗂 분류</h2>
+            <h2 className="section-title">분류</h2>
             <div className="class-grid">
               {topic.classification.map((c, i) => (
                 <div key={i} className="class-card" style={{ '--color': topic.color }}>
@@ -166,7 +192,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
 
         {activeSec === 'term' && (
           <section className="section">
-            <h2 className="section-title">📖 용어 정리</h2>
+            <h2 className="section-title">용어 정리</h2>
             <div className="term-list">
               {topic.terminology.map((t, i) => (
                 <div key={i} className="term-row">
@@ -180,7 +206,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
 
         {activeSec === 'mech' && (
           <section className="section">
-            <h2 className="section-title">⚡ 동작 원리</h2>
+            <h2 className="section-title">동작 원리</h2>
             <p className="adt-desc">{topic.mechanism.description}</p>
             <div className="concept-cards">
               {topic.mechanism.steps.map((s, i) => (
@@ -195,7 +221,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
 
         {activeSec === 'adt' && (
           <section className="section">
-            <h2 className="section-title">🔧 ADT (추상 자료형)</h2>
+            <h2 className="section-title">ADT (추상 자료형)</h2>
             <p className="adt-desc">{topic.adt.description}</p>
             <div className="table-wrap">
               <table className="complexity-table adt-table">
@@ -216,7 +242,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
 
         {activeSec === 'complexity' && (
           <section className="section">
-            <h2 className="section-title">⏱ 시간 복잡도</h2>
+            <h2 className="section-title">시간 복잡도</h2>
             <div className="table-wrap">
               <table className="complexity-table">
                 <thead><tr><th>연산</th><th>평균</th><th>최악</th><th>설명</th></tr></thead>
@@ -237,7 +263,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
 
         {activeSec === 'compare' && (
           <section className="section">
-            <h2 className="section-title">⚖️ {topic.comparison.title}</h2>
+            <h2 className="section-title">{topic.comparison.title}</h2>
             <div className="table-wrap">
               <table className="complexity-table">
                 <thead>
@@ -261,7 +287,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
 
         {activeSec === 'repr' && (
           <section className="section">
-            <h2 className="section-title">🏗 표현 방법</h2>
+            <h2 className="section-title">표현 방법</h2>
             <div className="repr-grid">
               {topic.representation.map((r, i) => (
                 <div key={i} className="repr-card" style={{ '--color': topic.color }}>
@@ -275,7 +301,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
 
         {activeSec === 'props' && (
           <section className="section">
-            <h2 className="section-title">📐 특징</h2>
+            <h2 className="section-title">특징</h2>
             <ul className="prop-list">
               {topic.properties.map((p, i) => (
                 <li key={i} className="prop-item">
@@ -289,7 +315,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
 
         {activeSec === 'viz' && (
           <section className="section">
-            <h2 className="section-title">🎮 직접 해보기</h2>
+            <h2 className="section-title">직접 해보기</h2>
             <div className="viz-container" style={{ '--color': topic.color }}>
               {Viz && (
                 <Suspense fallback={<div className="viz-loading">시각화를 불러오는 중…</div>}>
@@ -297,31 +323,25 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
                 </Suspense>
               )}
             </div>
+            {codeLangs.length > 0 && (
+              <div className="viz-code">
+                <div className="viz-code-head">시각화와 함께 보는 소스 코드 — 흐름을 비교하며 학습하세요</div>
+                {renderCode()}
+              </div>
+            )}
           </section>
         )}
 
         {activeSec === 'code' && (
           <section className="section">
-            <h2 className="section-title">💻 코드</h2>
-            <div className="code-block">
-              <div className="code-header">
-                <div className="lang-tabs">
-                  {codeLangs.map(lang => (
-                    <button key={lang} className={'lang-tab' + (codeLang === lang ? ' active' : '')} onClick={() => setCodeLang(lang)}>
-                      {CODE_LABEL[lang] || lang}
-                    </button>
-                  ))}
-                </div>
-                <button className="copy-btn" onClick={copyCode}>{copied ? '✓ 복사됨' : '복사'}</button>
-              </div>
-              <pre className="code-pre"><code>{topic.code[codeLang]}</code></pre>
-            </div>
+            <h2 className="section-title">코드</h2>
+            {renderCode()}
           </section>
         )}
 
         {activeSec === 'use' && (
           <section className="section">
-            <h2 className="section-title">🚀 실제 활용</h2>
+            <h2 className="section-title">실제 활용</h2>
             <div className="use-cases">
               {topic.useCases.map((u, i) => <span key={i} className="use-chip">{u}</span>)}
             </div>
@@ -330,7 +350,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
 
         {activeSec === 'quiz' && questions.length > 0 && (
           <section className="section">
-            <h2 className="section-title">✏️ 퀴즈 ({questions.length}문제)</h2>
+            <h2 className="section-title">퀴즈 ({questions.length}문제)</h2>
             <Quiz
               questions={questions}
               color={topic.color}
@@ -345,7 +365,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
             disabled={!prev}
             onClick={() => prev && selectSec(prev.key)}
           >
-            {prev && <>← {prev.icon} {prev.label}</>}
+            {prev && <>← {prev.label}</>}
           </button>
           <span className="sec-nav-pos">{idx + 1} / {sections.length}</span>
           <button
@@ -353,7 +373,7 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
             disabled={!next}
             onClick={() => next && selectSec(next.key)}
           >
-            {next && <>{next.icon} {next.label} →</>}
+            {next && <>{next.label} →</>}
           </button>
         </div>
       </div>

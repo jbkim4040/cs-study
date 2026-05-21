@@ -27,7 +27,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
 
 /* ── 사이드바 ─────────────────────────────────────────────── */
 .sidebar {
-  width: 240px;
+  width: var(--sidebar-w, 240px);
   flex-shrink: 0;
   background: #0f172a;
   display: flex;
@@ -1275,9 +1275,11 @@ button { font-family: inherit; cursor: pointer; border: none; }
     position: fixed;
     top: 0; bottom: 0; left: 0;
     z-index: 50;
+    width: min(86vw, 300px);
     transform: translateX(-100%);
     transition: transform 0.25s ease;
   }
+  .sidebar-resizer { display: none; }
   .sidebar.open { transform: translateX(0); }
   .ds-hero { margin-top: 56px; }
   /* 모바일: 목차는 햄버거 버튼과 겹치지 않도록 고정 해제 */
@@ -1557,4 +1559,53 @@ button { font-family: inherit; cursor: pointer; border: none; }
 @media (max-width: 600px) {
   .layer-protos { display: none; }
   .layer-name { min-width: 0; }
+}
+
+/* ── 사이드바 너비 조절 핸들 ─────────────────────────────── */
+.sidebar-resizer {
+  flex-shrink: 0;
+  width: 5px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s;
+}
+.sidebar-resizer:hover { background: rgba(99,102,241,0.55); }
+.sidebar-resizer:active { background: rgba(99,102,241,0.9); }
+
+/* ── 코드 언어 선택 드롭다운 ─────────────────────────────── */
+.lang-select {
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: rgba(255,255,255,0.08);
+  color: #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.14);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.lang-select:hover { border-color: rgba(255,255,255,0.3); }
+.lang-select:focus-visible { border-color: #818cf8; }
+.lang-select option { background: #1e293b; color: #e2e8f0; }
+
+/* ── 시각화 + 소스 코드 동시 보기 ────────────────────────── */
+.viz-code { margin-top: 18px; }
+.viz-code-head {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
+
+/* ── 모바일 가독성 보강 (2차) ────────────────────────────── */
+@media (max-width: 640px) {
+  .ds-toc { padding: 9px 0; gap: 5px; }
+  .toc-chip { padding: 5px 10px; font-size: 0.76rem; }
+  .lang-select { font-size: 0.78rem; }
+  .sec-nav-btn { padding: 9px 10px; font-size: 0.8rem; }
+  .viz-code-head { font-size: 0.74rem; }
+  .section-title { font-size: 0.98rem; }
+  .copy-btn { padding: 4px 9px; font-size: 0.74rem; }
 }

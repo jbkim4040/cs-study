@@ -39,7 +39,7 @@ pipeline {
             steps {
                 sh '''
                     ssh -o StrictHostKeyChecking=no $APP_SERVER \
-                      "docker run --rm -v $DEPLOY_DIR:/app -w /app node:20-alpine sh -c 'npm ci && npm run build'"
+                      "docker run --rm -v $DEPLOY_DIR:/app -w /app node:20-slim sh -c 'npm ci && npm run build'"
                 '''
                 echo "✅ Vite 빌드 완료"
             }

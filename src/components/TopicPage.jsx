@@ -329,7 +329,12 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
                 </Suspense>
               )}
             </div>
-            {codeLangs.length > 0 && (
+            {pgStarter ? (
+              <div className="viz-playground-wrap">
+                <div className="viz-playground-head">코드로 직접 실행해 보기 — 위 시각화의 동작을 코드로 체험하세요</div>
+                <CodePlayground starterLang={pgLang} starterCode={pgStarter} color={topic.color} />
+              </div>
+            ) : codeLangs.length > 0 && (
               <div className="viz-code">
                 <div className="viz-code-head">시각화와 함께 보는 소스 코드 — 흐름을 비교하며 학습하세요</div>
                 {renderCode()}

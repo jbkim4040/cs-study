@@ -172,6 +172,10 @@ export default function CodePlayground({ starterCode, starterLang, color }) {
       setCode(code.slice(0, s) + '  ' + code.slice(en))
       requestAnimationFrame(() => { t.selectionStart = t.selectionEnd = s + 2 })
     }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault()
+      if (!running) run()
+    }
   }
 
   const lines = code.split('\n')
@@ -179,15 +183,22 @@ export default function CodePlayground({ starterCode, starterLang, color }) {
 
   return (
     <div className="pg" style={{ '--color': color }}>
+      <div className="pg-hint">
+        <span className="pg-hint-step">① 아래 코드 수정</span>
+        <span className="pg-hint-arrow">→</span>
+        <span className="pg-hint-step">② <strong>▶ 실행</strong> 또는 <kbd>Ctrl+Enter</kbd></span>
+        <span className="pg-hint-arrow">→</span>
+        <span className="pg-hint-step">③ <strong>실행 흐름 보기</strong> 켜면 줄별 강조</span>
+      </div>
       <div className="pg-bar">
         <select className="lang-select" value={lang} onChange={e => changeLang(e.target.value)} aria-label="실행 언어 선택">
           <option value="javascript">JavaScript</option>
           <option value="python">Python</option>
         </select>
         <div className="pg-bar-right">
-          <label className="pg-step-toggle" title="JS 코드 실행 시 현재 줄을 순서대로 하이라이트">
+          <label className="pg-step-toggle" title="JavaScript 실행 시 현재 줄을 순서대로 강조합니다 (Python 미지원)">
             <input type="checkbox" checked={stepMode} onChange={e => setStepMode(e.target.checked)} disabled={running} />
-            단계 시각화
+            실행 흐름 보기
           </label>
           <button className="pg-reset" onClick={reset} disabled={running}>초기화</button>
           <button className="pg-run" onClick={run} disabled={running}>{running ? '실행 중…' : '▶ 실행'}</button>
@@ -224,10 +235,11 @@ export default function CodePlayground({ starterCode, starterLang, color }) {
       <div className={'pg-output ' + status}>
         <div className="pg-output-label">
           출력
-          {status === 'ok'    && <span className="pg-tag ok">성공</span>}
-          {status === 'error' && <span className="pg-tag err">오류</span>}
+          {running && hlLine && <span className="pg-tag run-tag">{hlLine}번째 줄 실행 중</span>}
+          {!running && status === 'ok'    && <span className="pg-tag ok">성공</span>}
+          {!running && status === 'error' && <span className="pg-tag err">오류</span>}
         </div>
-        <pre>{output || '코드를 작성하고 ▶ 실행을 누르세요.'}</pre>
+        <pre>{output || '코드를 수정하거나 그대로 ▶ 실행해 보세요.'}</pre>
       </div>
     </div>
   )

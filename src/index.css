@@ -1766,6 +1766,17 @@ button { font-family: inherit; cursor: pointer; border: none; }
 }
 .pg-reset:hover:not(:disabled) { color: #e2e8f0; }
 .pg-reset:disabled { opacity: 0.5; cursor: default; }
+/* playground hint banner */
+.pg-hint { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 8px 16px; background: rgba(255,255,255,0.025); border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.74rem; color: #4b5563; }
+.pg-hint-step { display: inline-flex; align-items: center; gap: 4px; color: #6b7280; }
+.pg-hint-step strong { color: #9ca3af; }
+.pg-hint-step kbd { display: inline-block; padding: 1px 6px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.13); border-radius: 4px; font-size: 0.7rem; color: #d1d5db; font-family: ui-monospace, monospace; line-height: 1.5; }
+.pg-hint-arrow { color: #374151; font-size: 0.7rem; }
+/* viz tab playground integration */
+.viz-playground-wrap { margin-top: 20px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); }
+.viz-playground-head { padding: 10px 16px; background: rgba(255,255,255,0.04); font-size: 0.8rem; color: #64748b; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.pg-tag.run-tag { background: rgba(99,102,241,0.2); color: #a5b4fc; animation: run-tag-pulse 1s ease-in-out infinite; }
+@keyframes run-tag-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
 .pg-code-wrap { display: flex; align-items: stretch; }
 .pg-gutter { flex-shrink: 0; width: 36px; padding: 14px 4px; background: #0f172a; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.84rem; line-height: 1.6; text-align: right; color: #475569; user-select: none; border-right: 1px solid rgba(255,255,255,0.06); }
 .pg-ln { padding-right: 8px; }

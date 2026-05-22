@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 
 const PYODIDE_URL = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/'
 const STEP_DELAY  = 380   // ms per step in animated mode
+const RUN_TIMEOUT = 20000 // ms — hard cap enforced inside the sandbox iframe
 
 const STARTERS = {
   javascript: 'console.log("Hello, World!");\n\nfor (let i = 1; i <= 5; i++) {\n  console.log("i =", i);\n}',
@@ -12,7 +13,7 @@ const STARTERS = {
 function sanitizeError(raw) {
   return String(raw)
     .replace(/(?:\/(?:Users|home|var|tmp|private|root)|[A-Za-z]:\\)[^\s"')]+/g, '<path>')
-    .replace(/blob:https?:\/\/[^\s)]+/g, '<worker>')
+    .replace(/blob:[^\s)]+/g, '<sandbox>')
     .replace(/file:\/\/[^\s)]+/g, '<path>')
     .replace(/^Uncaught\s+/, '')
 }
@@ -31,22 +32,23 @@ function injectSteps(src) {
   }).join('\n')
 }
 
-// Bridge code for viz-synced execution.
-// Runs inside the sandboxed iframe via new Function; uses parent.postMessage for viz events.
+// Bridge code for viz-synced execution — prepended to the worker source.
+// Runs in the worker; viz events are posted to the iframe via self.postMessage,
+// which the iframe relays to the parent.
 const VIZ_BRIDGES = {
   stack: `
 var __vs = [];
 var viz = {
   push: async function(x) {
     __vs.push(x);
-    parent.postMessage({ type: 'viz-op', op: 'push', args: [x] }, '*');
+    self.postMessage({ type: 'viz-op', op: 'push', args: [x] });
     await new Promise(function(r) { setTimeout(r, 420); });
     return x;
   },
   pop: async function() {
     var v = __vs.length > 0 ? __vs[__vs.length - 1] : undefined;
     if (__vs.length > 0) __vs.pop();
-    parent.postMessage({ type: 'viz-op', op: 'pop', args: [] }, '*');
+    self.postMessage({ type: 'viz-op', op: 'pop', args: [] });
     await new Promise(function(r) { setTimeout(r, 420); });
     return v;
   },
@@ -55,7 +57,7 @@ var viz = {
   isEmpty: function() { return __vs.length === 0; },
   reset: async function() {
     __vs = [];
-    parent.postMessage({ type: 'viz-op', op: 'reset', args: [] }, '*');
+    self.postMessage({ type: 'viz-op', op: 'reset', args: [] });
     await new Promise(function(r) { setTimeout(r, 200); });
   }
 };`,
@@ -64,14 +66,14 @@ var __vq = [];
 var viz = {
   enqueue: async function(x) {
     __vq.push(x);
-    parent.postMessage({ type: 'viz-op', op: 'enqueue', args: [x] }, '*');
+    self.postMessage({ type: 'viz-op', op: 'enqueue', args: [x] });
     await new Promise(function(r) { setTimeout(r, 420); });
     return x;
   },
   dequeue: async function() {
     var v = __vq.length > 0 ? __vq[0] : undefined;
     if (__vq.length > 0) __vq.shift();
-    parent.postMessage({ type: 'viz-op', op: 'dequeue', args: [] }, '*');
+    self.postMessage({ type: 'viz-op', op: 'dequeue', args: [] });
     await new Promise(function(r) { setTimeout(r, 420); });
     return v;
   },
@@ -80,23 +82,20 @@ var viz = {
   isEmpty: function() { return __vq.length === 0; },
   reset: async function() {
     __vq = [];
-    parent.postMessage({ type: 'viz-op', op: 'reset', args: [] }, '*');
+    self.postMessage({ type: 'viz-op', op: 'reset', args: [] });
     await new Promise(function(r) { setTimeout(r, 200); });
   }
 };`,
 }
 
-// Script embedded in the sandboxed iframe srcdoc.
-// Security model:
-//   - iframe sandbox="allow-scripts" (no allow-same-origin) → null origin → blocks same-origin XHR/fetch
-//   - All dangerous browser globals are shadowed to undefined via new Function parameters
-//   - Bridge code runs in a separate new Function scope, only communicates via parent.postMessage
-const SANDBOX_SCRIPT = `
-window.addEventListener('message', async function(e) {
-  if (!e.data || e.data.type !== 'run') return;
+// Worker source — runs user code on a dedicated thread.
+// A blocking loop only stalls this thread; the iframe can still terminate() it.
+// Dangerous globals are shadowed to undefined via new Function parameters.
+const WORKER_BODY = `
+self.onmessage = async function(e) {
   var logs = [];
   var fmt = function(v) {
-    if (v !== null && typeof v === 'object') { try { return JSON.stringify(v); } catch(_) { return String(v); } }
+    if (v !== null && typeof v === 'object') { try { return JSON.stringify(v); } catch (_) { return String(v); } }
     return String(v);
   };
   var cons = {
@@ -106,75 +105,111 @@ window.addEventListener('message', async function(e) {
     info:  function() { logs.push([].map.call(arguments, fmt).join(' ')); }
   };
   var __step = async function(n) {
-    parent.postMessage({ type: 'line', n: n }, '*');
+    self.postMessage({ type: 'line', n: n });
     await new Promise(function(r) { setTimeout(r, e.data.delay || 0); });
   };
-  var viz = e.data.bridgeCode
-    ? new Function(e.data.bridgeCode + '; return viz;')()
-    : undefined;
-  var _b = undefined;
   try {
     var fn = new Function(
       'console', '__step', 'viz',
-      'window', 'document', 'location', 'history', 'navigator',
-      'parent', 'top', 'frames', 'opener', 'self', 'globalThis',
-      'fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'Worker',
-      'open', 'alert', 'confirm', 'prompt', 'importScripts',
-      'eval', 'Function',
+      'self', 'globalThis', 'fetch', 'XMLHttpRequest', 'WebSocket',
+      'EventSource', 'importScripts', 'Worker', 'eval', 'Function',
       '"use strict"; return (async function() {\\n' + e.data.code + '\\n})()');
     await fn(
-      cons, __step, viz,
-      _b, _b, _b, _b, _b,
-      _b, _b, _b, _b, _b, _b,
-      _b, _b, _b, _b, _b,
-      _b, _b, _b, _b, _b,
-      _b, _b);
-    parent.postMessage({ type: 'done', ok: true, output: logs.join('\\n') }, '*');
-  } catch(err) {
-    parent.postMessage({ type: 'done', ok: false, output: logs.join('\\n'), error: String(err.message || err) }, '*');
+      cons, __step, (typeof viz !== 'undefined' ? viz : undefined),
+      undefined, undefined, undefined, undefined, undefined,
+      undefined, undefined, undefined, undefined, undefined);
+    self.postMessage({ type: 'done', ok: true, output: logs.join('\\n') });
+  } catch (err) {
+    self.postMessage({ type: 'done', ok: false, output: logs.join('\\n'), error: String(err && err.message || err) });
   }
+};
+`
+
+// Iframe bootstrap — spawns the worker, relays messages, owns the kill switch.
+// The worker runs on its own thread, so an infinite loop never blocks the main page.
+const SANDBOX_SCRIPT = `
+var WORKER_BODY = ${JSON.stringify(WORKER_BODY)};
+window.addEventListener('message', function(e) {
+  if (!e.data || e.data.type !== 'run') return;
+  var nonce = e.data.nonce;
+  var worker, killTimer, settled = false;
+  function relay(m) { parent.postMessage(Object.assign({ nonce: nonce }, m), '*'); }
+  function settle(m) {
+    if (settled) return;
+    settled = true;
+    clearTimeout(killTimer);
+    try { if (worker) worker.terminate(); } catch (_) {}
+    relay(m);
+  }
+  try {
+    var src = (e.data.bridgeCode || '') + WORKER_BODY;
+    var url = URL.createObjectURL(new Blob([src], { type: 'application/javascript' }));
+    worker = new Worker(url);
+  } catch (err) {
+    settle({ type: 'done', ok: false, output: '', error: '실행 환경을 초기화하지 못했습니다.' });
+    return;
+  }
+  killTimer = setTimeout(function() {
+    settle({ type: 'done', ok: false, output: '', error: '시간 초과 (${RUN_TIMEOUT / 1000}초) — 무한루프가 있는지 확인하세요.' });
+  }, ${RUN_TIMEOUT});
+  worker.onmessage = function(ev) {
+    if (ev.data && ev.data.type === 'done') settle(ev.data);
+    else relay(ev.data);
+  };
+  worker.onerror = function(ev) {
+    settle({ type: 'done', ok: false, output: '', error: String((ev && ev.message) || '실행 오류') });
+  };
+  worker.postMessage({ code: e.data.code, delay: e.data.delay });
 });
 `
-// Avoid </script> in the literal by splitting the closing tag
-const SANDBOX_SRCDOC = '<!DOCTYPE html><html><body><script>' + SANDBOX_SCRIPT + '</' + 'script></body></html>'
+const SANDBOX_SRCDOC = '<!DOCTYPE html><html><body><scr' + 'ipt>' + SANDBOX_SCRIPT + '</scr' + 'ipt></body></html>'
 
-// Run JavaScript in an isolated sandbox iframe.
-// iframe is created per-run and removed on completion or timeout.
-// Sync infinite loops are killed when the parent times out and removes the iframe.
-function runJS(code, { delay = 0, onLine, onVizOp, bridgeCode, timeout = 20000 }) {
+// Run JavaScript in a sandboxed iframe that hosts a dedicated worker.
+//   - iframe sandbox="allow-scripts" (no allow-same-origin) → null origin → blocks
+//     same-origin fetch/XHR, cookies, storage, parent DOM, top navigation
+//   - worker inside the iframe → user code runs on its own thread; a blocking loop
+//     stalls only that thread, never the main page
+//   - per-run nonce → messages from other windows/tabs are rejected
+function runJS(code, { delay = 0, onLine, onVizOp, bridgeCode } = {}) {
   return new Promise(resolve => {
+    const nonce = (crypto?.randomUUID?.() || String(Math.random()) + Date.now())
     const iframe = document.createElement('iframe')
     iframe.setAttribute('sandbox', 'allow-scripts')
     iframe.style.cssText = 'display:none;position:absolute;width:0;height:0;border:none'
     iframe.srcdoc = SANDBOX_SRCDOC
     document.body.appendChild(iframe)
 
-    const onMsg = ev => {
-      if (ev.source !== iframe.contentWindow) return
-      const d = ev.data
-      if (d.type === 'line') { onLine?.(d.n); return }
-      if (d.type === 'viz-op') { onVizOp?.(d.op, d.args); return }
-      if (d.type === 'done') {
-        clearTimeout(t)
-        cleanup()
-        resolve({ ...d, error: d.error ? sanitizeError(d.error) : undefined })
-      }
-    }
-    window.addEventListener('message', onMsg)
-
+    let settled = false
     function cleanup() {
       window.removeEventListener('message', onMsg)
       iframe.remove()
     }
-
-    const t = setTimeout(() => {
+    function finish(result) {
+      if (settled) return
+      settled = true
+      clearTimeout(backstop)
       cleanup()
-      resolve({ ok: false, output: '', error: '시간 초과 (20초) — 무한루프가 있는지 확인하세요.' })
-    }, timeout)
+      resolve(result)
+    }
+
+    const onMsg = ev => {
+      if (ev.source !== iframe.contentWindow) return
+      const d = ev.data
+      if (!d || d.nonce !== nonce) return
+      if (d.type === 'line')   { onLine?.(d.n); return }
+      if (d.type === 'viz-op') { onVizOp?.(d.op, d.args); return }
+      if (d.type === 'done')   { finish({ ok: d.ok, output: d.output, error: d.error ? sanitizeError(d.error) : undefined }) }
+    }
+    window.addEventListener('message', onMsg)
+
+    // Backstop: the iframe owns the primary kill timer; this only covers an
+    // iframe that never loads or never answers.
+    const backstop = setTimeout(() => finish({ ok: false, output: '', error: '시간 초과' }), RUN_TIMEOUT + 4000)
 
     iframe.onload = () => {
       iframe.contentWindow.postMessage({
         type: 'run',
+        nonce,
         code: (delay > 0 || bridgeCode) ? injectSteps(code) : code,
         delay,
         bridgeCode: bridgeCode || null,
@@ -241,7 +276,6 @@ export default function CodePlayground({ starterCode, starterLang, color, vizBri
         onLine:     delay > 0 ? n => setHlLine(n) : undefined,
         onVizOp:    vizBridge ? onVizOp : undefined,
         bridgeCode: vizBridge ? VIZ_BRIDGES[vizBridge] : null,
-        timeout:    20000,
       })
     } else {
       result = await runPython(code)

@@ -122,7 +122,30 @@ int x = 10;
 AddOne(ref x);
 Console.WriteLine(x);              // 11`,
     },
-    useCases: ['연결 리스트 · 트리 · 그래프 노드 연결', 'C/C++ 동적 메모리 할당', '함수 인자 참조 전달', '운영체제 커널 · 드라이버'],
+    useCases: [
+      { name: '연결 리스트·트리·그래프', desc: '노드가 다음 노드의 주소(참조)를 들고 있어야 동적 자료구조를 이을 수 있습니다.' },
+      { name: '동적 메모리 할당', desc: 'malloc·new로 힙에 잡은 메모리는 오직 포인터를 통해서만 접근합니다.' },
+      { name: '함수 인자 참조 전달', desc: '값 대신 주소를 넘기면 함수가 원본을 직접 수정하고 큰 데이터 복사도 피합니다.' },
+      { name: 'OS 커널·디바이스 드라이버', desc: '특정 하드웨어 주소를 포인터로 직접 가리켜 레지스터·메모리맵 I/O를 제어합니다.' },
+    ],
+    useCaseExample: {
+      title: '함수 인자 참조 전달 — 두 값 맞바꾸기',
+      desc: '값을 복사해 넘기면 함수 안의 변경이 원본에 반영되지 않습니다. **주소(포인터)**를 넘기면 함수가 호출자의 변수를 직접 바꿉니다.',
+      code: `#include <stdio.h>
+
+// 포인터로 원본의 주소를 받아 직접 교환
+void swap(int* a, int* b) {
+    int tmp = *a;   // a가 가리키는 값
+    *a = *b;
+    *b = tmp;
+}
+
+int main() {
+    int x = 10, y = 20;
+    swap(&x, &y);              // 변수의 '주소'를 전달
+    printf("%d %d\\n", x, y);  // 20 10 — 원본이 바뀜
+}`,
+    },
   },
 
   // ── 리스트 ───────────────────────────────────────────────────
@@ -255,7 +278,26 @@ lst.Add(50);                   // O(1) 끝 추가 (amortized)
 Console.WriteLine(lst.Contains(30));  // O(n) 탐색 → True
 Console.WriteLine(lst.IndexOf(30));   // 2`,
     },
-    useCases: ['Python list, Java ArrayList, JS Array', '순서 있는 데이터 관리', '스택·큐·덱의 기반', '알고리즘 입출력 버퍼'],
+    useCases: [
+      { name: '표준 라이브러리 리스트', desc: 'Python list·Java ArrayList·JS Array 모두 동적 배열 기반 리스트 ADT의 구현체입니다.' },
+      { name: '순서 있는 데이터 관리', desc: '할 일 목록·재생 목록처럼 삽입 순서와 인덱스가 의미를 갖는 데이터를 다룹니다.' },
+      { name: '스택·큐·덱의 기반', desc: '리스트에서 양 끝 연산만 노출하면 스택·큐·덱이 됩니다.' },
+      { name: '알고리즘 입출력 버퍼', desc: '입력을 순서대로 모으고 결과를 순서대로 쌓는 버퍼로 쓰입니다.' },
+    ],
+    useCaseExample: {
+      title: '음악 재생 목록 관리',
+      desc: '곡을 순서대로 보관하고 다음 곡 재생·중간 삽입·삭제를 인덱스로 처리합니다 — 리스트의 가장 일상적인 쓰임입니다.',
+      code: `playlist = ["Intro", "Verse", "Chorus"]
+
+playlist.append("Outro")        # 끝에 곡 추가
+playlist.insert(1, "Hook")      # 1번 위치에 삽입
+playlist.pop(0)                 # 첫 곡 재생 완료 → 제거
+
+now = 0
+for i, song in enumerate(playlist):
+    mark = "▶" if i == now else " "
+    print(mark, song)`,
+    },
   },
 
   // ── 배열 ─────────────────────────────────────────────────────
@@ -388,7 +430,29 @@ Console.WriteLine(Array.IndexOf(arr, 73));  // O(n) 탐색 → 3
 int[,] m = { {1,2,3}, {4,5,6}, {7,8,9} };
 Console.WriteLine(m[1, 2]);                 // 6`,
     },
-    useCases: ['이미지 픽셀 버퍼', '행렬·벡터 연산', '정렬 알고리즘 기반', '해시 테이블 버킷'],
+    useCases: [
+      { name: '이미지 픽셀 버퍼', desc: '이미지는 픽셀(RGB) 값을 행 우선 순서로 늘어놓은 2차원 배열입니다.' },
+      { name: '행렬·벡터 연산', desc: '연속 메모리라 CPU 캐시 적중률이 높아 수치 연산의 기본 자료형입니다.' },
+      { name: '정렬 알고리즘 기반', desc: '대부분의 정렬은 배열의 O(1) 인덱스 접근·교환 위에서 동작합니다.' },
+      { name: '해시 테이블 버킷', desc: '해시 값을 인덱스로 쓰는 버킷 배열이 해시 테이블의 뼈대입니다.' },
+    ],
+    useCaseExample: {
+      title: '이미지 밝기 조절',
+      desc: '이미지를 2차원 배열로 보고 각 픽셀 값을 더해 전체 밝기를 올립니다. 인덱스 직접 접근이라 O(행 × 열)에 처리됩니다.',
+      code: `# 3x3 그레이스케일 이미지 (0~255)
+image = [
+    [100, 120, 130],
+    [ 90, 110, 140],
+    [ 80, 105, 150],
+]
+
+# 모든 픽셀을 +40 (최대 255로 클램프)
+for r in range(len(image)):
+    for c in range(len(image[0])):
+        image[r][c] = min(255, image[r][c] + 40)
+
+print(image[0])   # [140, 160, 170]`,
+    },
   },
 
   // ── 스택 ─────────────────────────────────────────────────────
@@ -545,7 +609,34 @@ bool IsValid(string s) {
     return st.Count == 0;
 }`,
     },
-    useCases: ['함수 호출 스택', '실행 취소(Undo)', 'DFS', '괄호 검사', '후위 표기법'],
+    useCases: [
+      { name: '함수 호출 스택', desc: '함수 호출마다 스택 프레임이 쌓이고 반환할 때 LIFO 순서로 정리됩니다.' },
+      { name: '실행 취소 (Undo)', desc: '작업을 스택에 쌓아두고 pop하면 가장 최근 작업부터 되돌립니다.' },
+      { name: 'DFS (깊이 우선 탐색)', desc: '방문할 노드를 스택에 넣어 가장 깊은 경로부터 탐색합니다.' },
+      { name: '괄호·태그 검사', desc: '여는 기호는 push, 닫는 기호에서 pop해 짝이 맞는지 확인합니다.' },
+      { name: '후위 표기법 계산', desc: '피연산자를 쌓다가 연산자를 만나면 pop해서 계산합니다.' },
+    ],
+    useCaseExample: {
+      title: '에디터 실행 취소 (Undo)',
+      desc: '사용자가 글자를 입력할 때마다 직전 상태를 스택에 기록하고, Ctrl+Z를 누르면 가장 최근 상태를 pop해 되돌립니다.',
+      code: `history = []          # 작업 스택
+text = ""
+
+def type_char(c):
+    global text
+    history.append(text)   # 현재 상태를 저장
+    text += c
+
+def undo():
+    global text
+    if history:
+        text = history.pop()   # 직전 상태로 복원
+
+type_char("H"); type_char("i"); type_char("!")
+print(text)   # Hi!
+undo()
+print(text)   # Hi`,
+    },
   },
 
   // ── 큐 ───────────────────────────────────────────────────────
@@ -663,7 +754,33 @@ Console.WriteLine(q.Dequeue());  // dequeue → 10
 int cap = 5, rear = 4;
 rear = (rear + 1) % cap;         // 0 — 배열 앞으로 순환`,
     },
-    useCases: ['BFS', '프린터 인쇄 큐', 'CPU 스케줄링', '이벤트 처리', '네트워크 버퍼'],
+    useCases: [
+      { name: 'BFS (너비 우선 탐색)', desc: '가까운 노드부터 큐에 넣어 레벨 순서로 탐색 — 가중치 없는 최단 경로를 찾습니다.' },
+      { name: '프린터 인쇄 큐', desc: '먼저 요청한 문서가 먼저 출력되도록 작업을 FIFO로 줄 세웁니다.' },
+      { name: 'CPU 스케줄링', desc: '준비 상태의 프로세스를 준비 큐에 담아 순서대로 CPU를 배정합니다.' },
+      { name: '이벤트 처리', desc: '클릭·키 입력 등 이벤트를 발생 순서대로 큐에 모아 차례로 처리합니다.' },
+      { name: '네트워크 버퍼', desc: '도착한 패킷을 순서대로 큐에 담아 처리 속도 차이를 흡수합니다.' },
+    ],
+    useCaseExample: {
+      title: '프린터 작업 대기열',
+      desc: '여러 사용자가 보낸 인쇄 작업을 도착 순서대로 큐에 담고, 프린터는 앞(front)에서부터 하나씩 꺼내 출력합니다.',
+      code: `from collections import deque
+
+printer_queue = deque()
+
+def submit(doc):
+    printer_queue.append(doc)         # 작업 등록 (rear)
+    print(f"대기 등록: {doc}")
+
+def print_next():
+    if printer_queue:
+        doc = printer_queue.popleft()  # 가장 먼저 온 작업 (front)
+        print(f"출력 중: {doc}")
+
+submit("보고서.pdf"); submit("사진.jpg")
+print_next()   # 출력 중: 보고서.pdf
+print_next()   # 출력 중: 사진.jpg`,
+    },
   },
 
   // ── 연결 리스트 ───────────────────────────────────────────────
@@ -829,7 +946,31 @@ class LinkedList {
     }
 }`,
     },
-    useCases: ['스택·큐 내부 구현', 'LRU 캐시(양방향)', '파일 시스템 디렉터리', '다항식 연산'],
+    useCases: [
+      { name: '스택·큐 내부 구현', desc: '헤드·꼬리 삽입·삭제가 O(1)이라 크기 제한 없는 스택·큐를 만듭니다.' },
+      { name: 'LRU 캐시', desc: '양방향 연결 리스트로 최근 사용한 항목을 O(1)에 맨 앞으로 옮깁니다.' },
+      { name: '파일 시스템 디렉터리', desc: '한 디렉터리의 파일 목록을 노드 사슬로 이어 동적으로 추가·삭제합니다.' },
+      { name: '다항식 표현', desc: '각 항(계수·차수)을 노드로 만들어 희소한 다항식을 메모리 효율적으로 다룹니다.' },
+    ],
+    useCaseExample: {
+      title: '음악 플레이어 — 다음 곡 잇기',
+      desc: '각 곡 노드가 next로 다음 곡을 가리킵니다. 곡 추가가 포인터 교체만으로 O(1)에 끝나 배열보다 유리합니다.',
+      code: `class Song:
+    def __init__(self, title):
+        self.title = title
+        self.next = None
+
+# 곡을 사슬로 연결
+head = Song("Track 1")
+head.next = Song("Track 2")
+head.next.next = Song("Track 3")
+
+# 헤드부터 순회하며 재생
+cur = head
+while cur:
+    print("재생:", cur.title)
+    cur = cur.next`,
+    },
   },
 
   // ── 순환 ─────────────────────────────────────────────────────
@@ -997,7 +1138,30 @@ var n3 = new Node(30);
 n1.Next = n2; n2.Next = n3; n3.Next = n1;  // 순환!
 Console.WriteLine(HasCycle(n1));           // True`,
     },
-    useCases: ['라운드로빈 CPU 스케줄러', '원형 버퍼(Ring Buffer)', '멀티플레이어 게임 순번', '뮤직 플레이어 반복 재생'],
+    useCases: [
+      { name: '라운드로빈 스케줄러', desc: '프로세스를 원형으로 이어 타임 퀀텀마다 다음 프로세스로 공정하게 넘깁니다.' },
+      { name: '원형 버퍼 (Ring Buffer)', desc: '고정 크기 배열의 끝과 앞을 이어 오래된 데이터를 덮어쓰며 재사용합니다.' },
+      { name: '게임 턴 순번', desc: '마지막 플레이어 다음이 다시 첫 플레이어가 되도록 순번을 순환시킵니다.' },
+      { name: '반복 재생', desc: '마지막 곡의 next가 첫 곡을 가리켜 재생 목록을 끝없이 돌립니다.' },
+    ],
+    useCaseExample: {
+      title: '보드게임 턴 순환',
+      desc: '마지막 플레이어의 next가 첫 플레이어를 가리켜, 턴이 한 바퀴 돌면 별도 처리 없이 자연스럽게 처음으로 돌아옵니다.',
+      code: `class Player:
+    def __init__(self, name):
+        self.name = name
+        self.next = None
+
+# 3명을 순환 연결: A → B → C → A
+a, b, c = Player("A"), Player("B"), Player("C")
+a.next, b.next, c.next = b, c, a
+
+# 7턴 진행 — 순번이 자동으로 돈다
+cur = a
+for turn in range(1, 8):
+    print(f"{turn}턴: {cur.name}")
+    cur = cur.next`,
+    },
   },
 
   // ── 트리 ─────────────────────────────────────────────────────
@@ -1202,7 +1366,31 @@ void LevelOrder(Node root) {
     }
 }`,
     },
-    useCases: ['파일 시스템 디렉터리', 'HTML DOM 트리', '컴파일러 파싱 트리', '조직도 · 계층 데이터'],
+    useCases: [
+      { name: '파일 시스템', desc: '폴더가 하위 폴더·파일을 자식으로 갖는 전형적인 트리 계층입니다.' },
+      { name: 'HTML DOM 트리', desc: '웹 페이지의 모든 태그가 부모-자식으로 이어진 트리로 표현됩니다.' },
+      { name: '구문 분석 트리', desc: '컴파일러가 코드를 파싱해 연산 우선순위를 트리 구조에 담습니다.' },
+      { name: '조직도·카테고리', desc: '회사 조직도·상품 분류처럼 계층적 데이터를 자연스럽게 모델링합니다.' },
+    ],
+    useCaseExample: {
+      title: '폴더 용량 합산',
+      desc: '폴더 트리를 **후위 순회**하면 자식(파일·하위 폴더)의 크기를 먼저 모두 더한 뒤 부모 폴더의 총 용량을 구할 수 있습니다.',
+      code: `folder = {
+    "name": "project", "size": 0,
+    "children": [
+        {"name": "main.py", "size": 12, "children": []},
+        {"name": "src", "size": 0, "children": [
+            {"name": "util.py", "size": 8,  "children": []},
+            {"name": "app.py",  "size": 20, "children": []},
+        ]},
+    ],
+}
+
+def total_size(node):                    # 후위 순회
+    return node["size"] + sum(total_size(c) for c in node["children"])
+
+print(total_size(folder))   # 40`,
+    },
   },
 
   // ── BST ──────────────────────────────────────────────────────
@@ -1419,7 +1607,33 @@ void Inorder(Node n) {
     Inorder(n.Right);
 }`,
     },
-    useCases: ['DB 인덱스(B-Tree)', '순서 있는 집합·맵', '범위 질의', '파일 시스템'],
+    useCases: [
+      { name: 'DB 인덱스', desc: '데이터베이스는 B-Tree(BST의 확장)로 키를 정렬 보관해 빠른 검색을 지원합니다.' },
+      { name: '순서 있는 집합·맵', desc: 'Java TreeMap·C++ std::map은 균형 BST라 키가 항상 정렬되어 있습니다.' },
+      { name: '범위 질의', desc: '"30~70 사이 값"처럼 정렬 구조를 활용한 범위 탐색이 빠릅니다.' },
+      { name: '자동완성·사전', desc: '정렬된 키 위에서 특정 접두사·구간을 효율적으로 좁혀 나갑니다.' },
+    ],
+    useCaseExample: {
+      title: '점수 순위 검색',
+      desc: 'BST에 점수를 삽입하면 **중위 순회**만으로 정렬된 결과를 얻고, 특정 점수 탐색도 균형 트리에서 평균 O(log n)입니다.',
+      code: `class Node:
+    def __init__(self, v): self.v = v; self.left = self.right = None
+
+def insert(root, v):
+    if not root: return Node(v)
+    if v < root.v: root.left  = insert(root.left, v)
+    else:          root.right = insert(root.right, v)
+    return root
+
+root = None
+for score in [82, 95, 70, 88, 100]:
+    root = insert(root, score)
+
+def inorder(n):                      # 중위 순회 → 오름차순
+    if n: inorder(n.left); print(n.v, end=" "); inorder(n.right)
+
+inorder(root)   # 70 82 88 95 100`,
+    },
   },
 
   // ── 우선순위 큐 ──────────────────────────────────────────────
@@ -1558,7 +1772,28 @@ Console.WriteLine(pq.Peek());     // 작업 B (제거 없음)
 Console.WriteLine(pq.Dequeue());  // 작업 B — 최소 우선순위
 Console.WriteLine(pq.Dequeue());  // 작업 A`,
     },
-    useCases: ['다익스트라 최단 경로', '힙 정렬', '작업 스케줄링', 'A* 탐색', '중앙값 유지'],
+    useCases: [
+      { name: '다익스트라 최단 경로', desc: '가장 가까운 정점을 매번 O(log n)에 꺼내 최단 경로를 확장합니다.' },
+      { name: '힙 정렬', desc: '전체를 힙으로 만든 뒤 최댓값을 반복 추출하면 O(n log n) 정렬이 됩니다.' },
+      { name: '작업 스케줄링', desc: '우선순위가 높은 작업을 먼저 꺼내 처리합니다 — OS·메시지 큐.' },
+      { name: 'A* 길찾기', desc: '예상 비용이 낮은 경로를 우선순위 큐에서 먼저 꺼내 탐색합니다.' },
+      { name: '실시간 중앙값', desc: '최대 힙·최소 힙을 함께 써서 스트림의 중앙값을 O(log n)에 유지합니다.' },
+    ],
+    useCaseExample: {
+      title: '응급실 환자 분류 (Triage)',
+      desc: '도착 순서와 무관하게 위급도가 높은(숫자가 작은) 환자를 먼저 진료하도록 우선순위 큐로 관리합니다.',
+      code: `import heapq
+
+er = []   # (위급도, 환자) — 숫자가 작을수록 위급
+heapq.heappush(er, (3, "감기 환자"))
+heapq.heappush(er, (1, "심정지 환자"))
+heapq.heappush(er, (2, "골절 환자"))
+
+while er:
+    level, patient = heapq.heappop(er)
+    print(f"진료: {patient} (위급도 {level})")
+# 심정지 → 골절 → 감기 순서로 진료`,
+    },
   },
 
   // ── 해시 테이블 ───────────────────────────────────────────────
@@ -1684,7 +1919,25 @@ foreach (var w in words)
     freq[w] = freq.GetValueOrDefault(w) + 1;
 Console.WriteLine(freq["a"]);  // 3`,
     },
-    useCases: ['Python dict, JS Map', '중복 검사·빈도 카운팅', 'DB 해시 인덱스', 'LRU 캐시'],
+    useCases: [
+      { name: '표준 라이브러리 맵', desc: 'Python dict·Java HashMap·JS Map 모두 해시 테이블 구현체입니다.' },
+      { name: '중복 검사·빈도 카운팅', desc: '키 존재 확인이 평균 O(1)이라 중복 탐지·개수 세기에 최적입니다.' },
+      { name: 'DB 해시 인덱스', desc: '동등 조건 검색(WHERE id = ?)을 평균 O(1)에 처리하는 인덱스로 쓰입니다.' },
+      { name: '캐시', desc: '키로 결과를 즉시 찾아 반복 계산·중복 요청을 건너뜁니다.' },
+    ],
+    useCaseExample: {
+      title: '단어 빈도 세기',
+      desc: '문장의 각 단어를 키로 두고 등장 횟수를 값으로 누적합니다. 키 접근이 O(1)이라 전체가 O(단어 수)에 끝납니다.',
+      code: `text = "apple banana apple cherry banana apple"
+
+freq = {}
+for word in text.split():
+    freq[word] = freq.get(word, 0) + 1   # 없으면 0에서 시작
+
+for word, count in freq.items():
+    print(f"{word}: {count}")
+# apple: 3 / banana: 2 / cherry: 1`,
+    },
   },
 
   // ── 그래프 ────────────────────────────────────────────────────
@@ -1882,7 +2135,38 @@ void Dfs(int v, HashSet<int> vis) {
         if (!vis.Contains(u)) Dfs(u, vis);
 }`,
     },
-    useCases: ['소셜 네트워크', '지도·경로 탐색', '웹 크롤링', '컴파일러 의존성 분석'],
+    useCases: [
+      { name: '소셜 네트워크', desc: '사람을 정점, 친구 관계를 간선으로 두어 친구 추천·관계 탐색을 합니다.' },
+      { name: '지도·경로 탐색', desc: '교차로를 정점, 도로를 간선으로 모델링해 경로를 찾습니다.' },
+      { name: '웹 크롤링', desc: '페이지를 정점, 링크를 간선으로 보고 BFS·DFS로 사이트를 순회합니다.' },
+      { name: '의존성 분석', desc: '모듈 간 import 관계를 유향 그래프로 두고 빌드·실행 순서를 정합니다.' },
+    ],
+    useCaseExample: {
+      title: '친구의 친구 추천',
+      desc: '소셜 그래프에서 **BFS**로 거리가 2인 사람(친구의 친구)을 찾아, 나와 직접 친구가 아닌 사람을 추천합니다.',
+      code: `from collections import deque
+
+friends = {
+    "나":   ["민수", "지영"],
+    "민수": ["나", "철수"],
+    "지영": ["나", "영희"],
+    "철수": ["민수"], "영희": ["지영"],
+}
+
+def recommend(start):
+    visited = {start}
+    q = deque([(start, 0)])
+    rec = []
+    while q:
+        person, dist = q.popleft()
+        if dist == 2: rec.append(person)        # 거리 2 = 추천 대상
+        for f in friends[person]:
+            if f not in visited:
+                visited.add(f); q.append((f, dist + 1))
+    return rec
+
+print(recommend("나"))   # ['철수', '영희']`,
+    },
   },
 
   // ── 가중치 그래프 ─────────────────────────────────────────────
@@ -2069,7 +2353,38 @@ int[] Dijkstra(int src, int n) {
     return dist;
 }`,
     },
-    useCases: ['네비게이션 최단 경로', '네트워크 라우팅', '지하철 환승 최적화', '전력망 MST'],
+    useCases: [
+      { name: '내비게이션', desc: '도로 거리·소요 시간을 가중치로 두고 Dijkstra로 최단 경로를 찾습니다.' },
+      { name: '네트워크 라우팅', desc: '라우터 간 전송 비용을 가중치로 두어 패킷의 최적 경로를 계산합니다.' },
+      { name: '지하철 환승 최적화', desc: '역을 정점, 소요 시간을 가중치로 둬 최소 시간 경로를 안내합니다.' },
+      { name: '전력·통신망 설계', desc: 'MST로 모든 지점을 최소 비용으로 잇는 망을 설계합니다.' },
+    ],
+    useCaseExample: {
+      title: '내비게이션 최단 경로',
+      desc: '교차로를 정점, 도로 길이를 가중치로 둔 그래프에서 **Dijkstra**로 출발지→목적지 최소 거리를 구합니다.',
+      code: `import heapq
+
+# 도로망: 교차로 → [(이웃 교차로, 거리)]
+roads = {
+    "집":     [("사거리", 4), ("공원", 2)],
+    "공원":   [("사거리", 1), ("회사", 7)],
+    "사거리": [("회사", 3)],
+    "회사":   [],
+}
+
+def shortest(start, goal):
+    dist = {start: 0}
+    pq = [(0, start)]
+    while pq:
+        d, node = heapq.heappop(pq)
+        if node == goal: return d
+        for nxt, w in roads[node]:
+            if d + w < dist.get(nxt, 1e9):
+                dist[nxt] = d + w
+                heapq.heappush(pq, (d + w, nxt))
+
+print(shortest("집", "회사"), "km")   # 6 km (집→공원→사거리→회사)`,
+    },
   },
 
   // ── 정렬 ─────────────────────────────────────────────────────
@@ -2281,6 +2596,27 @@ void QuickSort(int[] arr, int lo, int hi) {
 
 // 표준 라이브러리 — Array.Sort (introsort)`,
     },
-    useCases: ['데이터베이스 ORDER BY', '이진 탐색 전처리', '우선순위 스케줄링', '외부 정렬(대용량 파일)'],
+    useCases: [
+      { name: '데이터베이스 ORDER BY', desc: '쿼리 결과를 특정 컬럼 기준으로 정렬해 반환합니다.' },
+      { name: '이진 탐색 전처리', desc: '이진 탐색은 정렬된 데이터에서만 동작하므로 정렬이 선행됩니다.' },
+      { name: '순위·랭킹 산출', desc: '점수·매출 등을 정렬해 순위표·리더보드를 만듭니다.' },
+      { name: '외부 정렬', desc: '메모리보다 큰 파일은 조각내 정렬한 뒤 병합합니다 (외부 병합 정렬).' },
+    ],
+    useCaseExample: {
+      title: '학생 성적 순위표',
+      desc: '학생을 점수 기준 내림차순으로 정렬해 등수를 매깁니다. 실무에선 언어 내장 정렬(Tim Sort, O(n log n))을 씁니다.',
+      code: `students = [
+    {"name": "김철수", "score": 82},
+    {"name": "이영희", "score": 95},
+    {"name": "박민수", "score": 88},
+]
+
+# 점수 내림차순 정렬 (key + reverse)
+ranked = sorted(students, key=lambda s: s["score"], reverse=True)
+
+for rank, s in enumerate(ranked, start=1):
+    print(f"{rank}등: {s['name']} ({s['score']}점)")
+# 1등 이영희 / 2등 박민수 / 3등 김철수`,
+    },
   },
 ]

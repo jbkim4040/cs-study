@@ -356,9 +356,35 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
         {activeSec === 'use' && (
           <section className="section">
             <h2 className="section-title">실제 활용</h2>
-            <div className="use-cases">
-              {topic.useCases.map((u, i) => <span key={i} className="use-chip">{u}</span>)}
+            <div className="use-grid">
+              {topic.useCases.map((u, i) => {
+                const name = typeof u === 'string' ? u : u.name
+                const desc = typeof u === 'string' ? null : u.desc
+                return (
+                  <div key={i} className="use-card">
+                    <span className="use-card-dot" style={{ background: topic.color }} />
+                    <div className="use-card-body">
+                      <div className="use-card-name">{name}</div>
+                      {desc && <div className="use-card-desc"><RichText text={desc} glossary={glossary} /></div>}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
+            {topic.useCaseExample && (
+              <div className="use-example" style={{ '--color': topic.color }}>
+                <div className="use-example-head">
+                  <span className="use-example-tag">활용 예제</span>
+                  <span className="use-example-title">{topic.useCaseExample.title}</span>
+                </div>
+                <p className="use-example-desc">
+                  <RichText text={topic.useCaseExample.desc} glossary={glossary} />
+                </p>
+                <div className="code-block">
+                  <pre className="code-pre"><code>{topic.useCaseExample.code}</code></pre>
+                </div>
+              </div>
+            )}
           </section>
         )}
 

@@ -657,16 +657,43 @@ button { font-family: inherit; cursor: pointer; border: none; }
 .code-pre code { color: #e2e8f0; }
 
 /* ── 활용 예 ─────────────────────────────────────────────── */
-.use-cases { display: flex; flex-wrap: wrap; gap: 8px; }
-.use-chip {
+.use-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 12px;
+}
+.use-card {
+  display: flex;
+  gap: 10px;
   background: #fff;
   border: 1.5px solid #e2e8f0;
-  border-radius: 20px;
-  padding: 6px 14px;
-  font-size: 0.84rem;
-  color: #334155;
-  font-weight: 500;
+  border-radius: 12px;
+  padding: 14px 16px;
 }
+.use-card-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.use-card-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.use-card-name { font-weight: 700; font-size: 0.92rem; color: #1e293b; }
+.use-card-desc { font-size: 0.83rem; color: #64748b; line-height: 1.55; }
+
+.use-example { margin-top: 20px; }
+.use-example-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.use-example-tag {
+  background: var(--color, #6366f1);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.use-example-title { font-weight: 700; font-size: 0.98rem; color: #1e293b; }
+.use-example-desc { font-size: 0.9rem; color: #475569; line-height: 1.65; margin: 0 0 12px; }
 
 /* ── 퀴즈 ────────────────────────────────────────────────── */
 .quiz-wrap { display: flex; flex-direction: column; gap: 14px; }

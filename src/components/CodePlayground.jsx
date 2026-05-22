@@ -8,6 +8,15 @@ const STARTERS = {
   python:     'print("Hello, World!")\n\nfor i in range(1, 6):\n    print("i =", i)',
 }
 
+// Strip local file paths and blob URLs from error messages before showing to users
+function sanitizeError(raw) {
+  return String(raw)
+    .replace(/(?:\/(?:Users|home|var|tmp|private|root)|[A-Za-z]:\\)[^\s"')]+/g, '<path>')
+    .replace(/blob:https?:\/\/[^\s)]+/g, '<worker>')
+    .replace(/file:\/\/[^\s)]+/g, '<path>')
+    .replace(/^Uncaught\s+/, '')
+}
+
 // Inject `await __step(N)` before each executable line; asyncify function declarations
 function injectSteps(src) {
   const code = src
@@ -66,7 +75,7 @@ self.onmessage = function(e) {
     info:  function() { logs.push([].map.call(arguments, fmt).join(' ')); }
   };
   try {
-    new Function('console', e.data.code)(s);
+    new Function('console', 'self', '"use strict";\n' + e.data.code)(s, undefined);
     self.postMessage({ ok: true, output: logs.join('\\n') });
   } catch (err) {
     self.postMessage({ ok: false, output: logs.join('\\n'), error: String(err) });
@@ -165,10 +174,10 @@ function spawnWorker(src) {
 function runJSFast(code) {
   return new Promise(resolve => {
     let w
-    try { w = spawnWorker(FAST_WORKER) } catch (e) { resolve({ ok: false, output: '', error: String(e) }); return }
+    try { w = spawnWorker(FAST_WORKER) } catch { resolve({ ok: false, output: '', error: '코드 실행 환경을 초기화하지 못했습니다.' }); return }
     const t = setTimeout(() => { w.terminate(); resolve({ ok: false, output: '', error: '시간 초과 (3초)' }) }, 3000)
     w.onmessage = ev => { clearTimeout(t); w.terminate(); resolve(ev.data) }
-    w.onerror   = ev => { clearTimeout(t); w.terminate(); resolve({ ok: false, output: '', error: String(ev.message) }) }
+    w.onerror   = ev => { clearTimeout(t); w.terminate(); resolve({ ok: false, output: '', error: sanitizeError(ev.message) }) }
     w.postMessage({ code })
   })
 }
@@ -177,14 +186,14 @@ function runJSAnimated(code, delay, onLine, onVizOp, bridgeCode) {
   return new Promise(resolve => {
     let w
     const workerSrc = bridgeCode ? buildAnimatedWorker(bridgeCode) : ANIMATED_WORKER
-    try { w = spawnWorker(workerSrc) } catch (e) { resolve({ ok: false, output: '', error: String(e) }); return }
+    try { w = spawnWorker(workerSrc) } catch { resolve({ ok: false, output: '', error: '코드 실행 환경을 초기화하지 못했습니다.' }); return }
     const t = setTimeout(() => { w.terminate(); resolve({ ok: false, output: '', error: '시간 초과 (20초)' }) }, 20000)
     w.onmessage = ev => {
       if (ev.data.type === 'line') { onLine(ev.data.n); return }
       if (ev.data.type === 'viz-op') { onVizOp?.(ev.data.op, ev.data.args); return }
       clearTimeout(t); w.terminate(); resolve(ev.data)
     }
-    w.onerror = ev => { clearTimeout(t); w.terminate(); resolve({ ok: false, output: '', error: String(ev.message) }) }
+    w.onerror = ev => { clearTimeout(t); w.terminate(); resolve({ ok: false, output: '', error: sanitizeError(ev.message) }) }
     w.postMessage({ code: injectSteps(code), delay })
   })
 }
@@ -200,6 +209,7 @@ export default function CodePlayground({ starterCode, starterLang, color, vizBri
   const [stepMode, setStepMode] = useState(true)
   const [fromVizHl, setFromVizHl] = useState(null)
   const pyRef = useRef(null)
+  const execViewRef = useRef(null)
 
   useEffect(() => {
     if (!externalHlLine) return
@@ -207,6 +217,12 @@ export default function CodePlayground({ starterCode, starterLang, color, vizBri
     const t = setTimeout(() => setFromVizHl(null), 1200)
     return () => clearTimeout(t)
   }, [externalHlLine])
+
+  useEffect(() => {
+    if (!hlLine || !execViewRef.current) return
+    const el = execViewRef.current.children[hlLine - 1]
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [hlLine])
 
   async function ensurePyodide() {
     if (pyRef.current) return pyRef.current
@@ -222,11 +238,11 @@ export default function CodePlayground({ starterCode, starterLang, color, vizBri
       const py = await ensurePyodide()
       let out = ''
       py.setStdout({ batched: s => { out += s + '\n' } })
-      py.setStderr({ batched: s => { out += s + '\n' } })
+      py.setStderr({ batched: () => {} })  // discard Pyodide internal warnings
       await py.runPythonAsync(src)
       return { ok: true, output: out.replace(/\n$/, '') }
     } catch (err) {
-      return { ok: false, output: '', error: String(err) }
+      return { ok: false, output: '', error: sanitizeError(err) }
     }
   }
 
@@ -307,7 +323,7 @@ export default function CodePlayground({ starterCode, starterLang, color, vizBri
         </div>
 
         {showExecView ? (
-          <pre className="pg-exec-view">
+          <pre className="pg-exec-view" ref={execViewRef}>
             {lines.map((ln, i) => (
               <div key={i} className={'pg-exec-ln' + (hlLine === i + 1 ? ' hl' : '') + (fromVizHl === i + 1 ? ' viz-hl' : '')}>
                 {ln || ' '}

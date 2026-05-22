@@ -96,7 +96,46 @@ sendto(sock, &icmp, sizeof(icmp), 0,
        (struct sockaddr *)&dest, sizeof(dest));
 // 응답(Type 0)을 recvfrom()으로 받아 RTT 계산`,
     },
-    useCases: ['ping — 호스트 생존·도달성 확인', 'traceroute — 패킷 경로 추적', '네트워크 장애 진단', 'PMTU(경로 MTU) 탐색', '방화벽이 ICMP를 막으면 ping 실패'],
+    useCases: [
+      { name: 'ping — 호스트 생존·도달성 확인', desc: 'ICMP 에코 요청(Type 8)을 보내고 에코 응답(Type 0)을 받아 호스트의 생존 여부와 왕복 시간(RTT)을 측정합니다.' },
+      { name: 'traceroute — 패킷 경로 추적', desc: 'TTL을 1부터 하나씩 늘려 보내면 각 홉의 라우터가 "시간 경과(Type 11)"를 보내오고, 이것으로 경로를 역추적합니다.' },
+      { name: '네트워크 장애 진단', desc: '목적지 도달 불가(Type 3)·시간 경과(Type 11) 메시지로 어느 구간에서 패킷이 막히는지 파악할 수 있습니다.' },
+      { name: 'PMTU(경로 MTU) 탐색', desc: '경로상 MTU보다 큰 패킷을 보내면 "단편화 필요(Type 3, Code 4)" ICMP를 받습니다. 이를 이용해 경로 MTU를 자동으로 탐색합니다.' },
+      { name: '방화벽이 ICMP를 막으면 ping 실패', desc: '보안상 방화벽이 ICMP를 차단하면 ping이 실패합니다. traceroute의 *(timeout) 출력이 의심 구간을 알려줍니다.' },
+    ],
+    useCaseExample: {
+      title: 'ping 원리 — ICMP 에코 요청·응답으로 RTT 측정',
+      desc: 'ping은 **ICMP Type 8 에코 요청**을 보내고, 상대 호스트가 **Type 0 에코 응답**을 돌려보내는 왕복 시간을 측정합니다. TTL이 0이 되면 라우터가 **Type 11 시간 경과**를 보냅니다.',
+      code: `# Python ping 원리 (관리자 권한 필요)
+import socket, struct, time, os
+
+def checksum(data):
+    s = 0
+    for i in range(0, len(data), 2):
+        s += (data[i] << 8) + data[i + 1]
+    s = (s >> 16) + (s & 0xFFFF)
+    return ~s & 0xFFFF
+
+def ping(host):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_RAW,
+                         socket.IPPROTO_ICMP)
+    sock.settimeout(2)
+    pid = os.getpid() & 0xFFFF
+    # ICMP 헤더: Type=8(에코요청), Code=0, Checksum, ID, Seq
+    hdr = struct.pack('bbHHh', 8, 0, 0, pid, 1)
+    cs  = checksum(hdr + b'ping')
+    pkt = struct.pack('bbHHh', 8, 0, cs, pid, 1) + b'ping'
+
+    t0 = time.time()
+    sock.sendto(pkt, (host, 0))      # 에코 요청 송신
+    try:
+        sock.recvfrom(1024)           # 에코 응답(Type 0) 수신
+        print(f'{host}: RTT={( time.time()-t0)*1000:.1f}ms')
+    except socket.timeout:
+        print(f'{host}: timeout')
+
+ping('8.8.8.8')`,
+    },
   },
 
   // ── 전송 계층 ─────────────────────────────────────────────────
@@ -189,7 +228,33 @@ cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 cli.connect(('203.0.113.7', 80))
 print(cli.getsockname())         # ('198.51.100.2', 52000) 같은 동적 포트`,
     },
-    useCases: ['웹 브라우저 ↔ 웹 서버(80/443)', '한 PC에서 여러 앱이 동시에 인터넷 사용', '서버가 포트별로 서비스 구분', 'NAT의 포트 주소 변환(PAT)'],
+    useCases: [
+      { name: '웹 브라우저 ↔ 웹 서버(80/443)', desc: '브라우저는 서버의 포트 80(HTTP) 또는 443(HTTPS)에 연결하고, OS가 임시 동적 포트를 클라이언트에 배정합니다.' },
+      { name: '한 PC에서 여러 앱이 동시에 인터넷 사용', desc: '각 앱이 서로 다른 동적 포트를 갖기 때문에 전송 계층이 수신 패킷을 올바른 앱에 역다중화할 수 있습니다.' },
+      { name: '서버가 포트별로 서비스 구분', desc: '포트 22는 SSH, 80은 HTTP, 443은 HTTPS — 한 서버 IP에서 여러 서비스가 포트 번호로 구분됩니다.' },
+      { name: 'NAT의 포트 주소 변환(PAT)', desc: 'NAT 라우터는 사설 IP의 포트를 공인 IP의 다른 포트로 변환(PAT)해 다수의 내부 호스트가 하나의 공인 IP를 공유합니다.' },
+    ],
+    useCaseExample: {
+      title: '소켓 주소 = IP + 포트 — 역다중화로 올바른 프로세스에 전달',
+      desc: '수신 측 전송 계층은 패킷의 **목적지 포트 번호**를 보고 어느 프로세스(소켓)에 데이터를 줄지 결정합니다. 포트가 없으면 IP만으로는 어떤 앱인지 알 수 없습니다.',
+      code: `import socket
+
+# 서버: 잘 알려진 포트에 바인딩
+srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+srv.bind(('0.0.0.0', 8080))          # 소켓 주소 = (IP, 포트)
+srv.listen(5)
+print("서버 대기 중: 0.0.0.0:8080")
+
+conn, (cli_ip, cli_port) = srv.accept()
+# 클라이언트의 동적 포트 — OS가 자동 배정
+print(f"연결 수락: {cli_ip}:{cli_port}")
+data = conn.recv(1024)
+print("수신:", data.decode())
+conn.sendall(b"pong")
+conn.close()
+srv.close()`,
+    },
   },
 
   // ── UDP ───────────────────────────────────────────────────────
@@ -268,7 +333,33 @@ r.bind(('0.0.0.0', 9999))
 data, addr = r.recvfrom(1024)               # 각 데이터그램은 독립적
 print(data, 'from', addr)`,
     },
-    useCases: ['DNS — 짧은 질의/응답', 'DHCP — IP 주소 자동 할당', '실시간 스트리밍·화상통화', '온라인 게임', 'SNMP — 네트워크 장치 관리'],
+    useCases: [
+      { name: 'DNS — 짧은 질의/응답', desc: 'DNS 질의는 패킷 하나로 끝나는 짧은 요청이라 연결 오버헤드 없는 UDP가 적합합니다. 응답이 오지 않으면 재전송합니다.' },
+      { name: 'DHCP — IP 주소 자동 할당', desc: 'DHCP는 브로드캐스트로 동작하므로 연결 개념이 없는 UDP를 씁니다. 임대 요청-응답이 각각 UDP 데이터그램입니다.' },
+      { name: '실시간 스트리밍·화상통화', desc: '영상·음성은 약간의 패킷 손실보다 지연이 더 치명적입니다. TCP의 재전송 대기 없이 UDP로 빠르게 보냅니다.' },
+      { name: '온라인 게임', desc: '게임 위치·상태 업데이트는 최신 값이 중요하고 낡은 패킷은 버려도 됩니다. UDP로 지연을 낮추고, 중요 이벤트만 앱 레벨에서 재전송합니다.' },
+      { name: 'SNMP — 네트워크 장치 관리', desc: '네트워크 장비의 상태 질의는 간단한 요청-응답이라 UDP 161번 포트로 운영합니다.' },
+    ],
+    useCaseExample: {
+      title: 'UDP 에코 서버 — 받는 즉시 그대로 돌려보내기',
+      desc: 'UDP 서버는 TCP와 달리 **accept() 없이** 바로 recvfrom()으로 수신합니다. 각 데이터그램은 독립적이라 순서나 연결 상태를 신경 쓰지 않습니다.',
+      code: `import socket
+
+# UDP 에코 서버 — connect 없이 바로 송수신
+srv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
+srv.bind(('0.0.0.0', 9999))
+print("UDP 에코 서버 대기 중: port 9999")
+
+for _ in range(3):                     # 3번만 받고 종료
+    data, addr = srv.recvfrom(1024)    # 연결 없이 바로 수신
+    print(f"{addr} → {data.decode()}")
+    srv.sendto(data, addr)             # 받은 주소로 돌려보냄
+
+# 클라이언트 예시 (별도 실행)
+# cli = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+# cli.sendto(b'hello UDP', ('127.0.0.1', 9999))
+# print(cli.recvfrom(1024))`,
+    },
   },
 
   // ── TCP ───────────────────────────────────────────────────────
@@ -363,7 +454,38 @@ cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 cli.connect(('203.0.113.7', 8080))   # SYN → SYN+ACK → ACK
 print(cli.recv(1024))`,
     },
-    useCases: ['HTTP/HTTPS — 웹 페이지 전송', '파일 다운로드(FTP)', '이메일(SMTP·POP3·IMAP)', 'SSH 원격 접속', '정확성이 중요한 모든 전송'],
+    useCases: [
+      { name: 'HTTP/HTTPS — 웹 페이지 전송', desc: '브라우저가 TCP 연결을 맺은 뒤 HTTP 요청을 보내면 서버가 완전한 응답을 순서대로 보장해 돌려줍니다.' },
+      { name: '파일 다운로드(FTP)', desc: '파일 내용은 손실·순서 뒤바뀜이 없어야 합니다. TCP의 재전송과 순서 번호 덕분에 정확한 파일을 받습니다.' },
+      { name: '이메일(SMTP·POP3·IMAP)', desc: '메일 내용은 한 바이트도 빠지거나 바뀌면 안 됩니다. TCP의 신뢰성 보장이 이메일 전달을 안전하게 합니다.' },
+      { name: 'SSH 원격 접속', desc: 'SSH는 TCP 22번 포트로 연결해 암호화된 터미널 스트림을 주고받습니다. 연결 끊김 없이 순서가 보장되어야 명령어가 올바르게 실행됩니다.' },
+      { name: '정확성이 중요한 모든 전송', desc: '결제·금융·의료 시스템은 모두 TCP를 기반으로 하며, 상위 프로토콜(TLS 등)로 보안을 추가합니다.' },
+    ],
+    useCaseExample: {
+      title: 'TCP 3-way handshake — Python 소켓으로 연결 설정 확인',
+      desc: 'TCP 연결은 **SYN → SYN+ACK → ACK** 세 단계로 설정됩니다. Python에서 `connect()`가 이 과정을 자동으로 수행합니다. `accept()`가 반환될 때 handshake가 완료된 상태입니다.',
+      code: `import socket, threading
+
+def server():
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    srv.bind(('127.0.0.1', 9876))
+    srv.listen(1)
+    # accept()는 3-way handshake 완료 후 반환
+    conn, addr = srv.accept()
+    print(f"[서버] handshake 완료: {addr}")
+    conn.sendall(b'hello from server')
+    conn.close(); srv.close()
+
+t = threading.Thread(target=server, daemon=True)
+t.start()
+
+# 클라이언트: connect()가 SYN → SYN+ACK → ACK 수행
+cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+cli.connect(('127.0.0.1', 9876))    # 3-way handshake
+print("[클라이언트]", cli.recv(1024).decode())
+cli.close(); t.join()`,
+    },
   },
 
   // ── 응용 계층 ─────────────────────────────────────────────────
@@ -463,6 +585,41 @@ cli.sendall(b'hello')
 print(cli.recv(1024))
 cli.close()                       # 서비스 끝 → 종료`,
     },
-    useCases: ['웹 브라우징(HTTP/HTTPS)', '이메일(SMTP·POP3·IMAP)', '파일 공유·토렌트(P2P)', 'DNS 이름 해석', '메신저·화상회의'],
+    useCases: [
+      { name: '웹 브라우징(HTTP/HTTPS)', desc: '브라우저(클라이언트)가 서버 포트 80/443에 TCP 연결 후 HTTP 요청을 보내고, 서버가 HTML·CSS·JS를 응답으로 보냅니다.' },
+      { name: '이메일(SMTP·POP3·IMAP)', desc: 'SMTP로 메일을 발송하고, POP3·IMAP으로 수신합니다. 모두 클라이언트-서버 패러다임에서 TCP를 기반으로 동작합니다.' },
+      { name: '파일 공유·토렌트(P2P)', desc: '비트토렌트는 피어들이 서로 역할이 대등한 P2P 방식으로 파일 조각을 교환해 중앙 서버 없이 대용량 배포를 수행합니다.' },
+      { name: 'DNS 이름 해석', desc: '브라우저는 URL의 호스트명을 DNS 서버(포트 53)에 질의해 IP 주소로 변환합니다. DNS 서버는 반복적 서버입니다.' },
+      { name: '메신저·화상회의', desc: '텍스트는 TCP로 신뢰성을 보장하고, 음성·영상은 UDP로 지연을 줄이는 혼합 방식을 채택하는 것이 일반적입니다.' },
+    ],
+    useCaseExample: {
+      title: 'HTTP 요청 직접 만들기 — 소켓으로 웹 페이지 수신',
+      desc: 'HTTP는 TCP 소켓 위에 텍스트 형식의 요청/응답을 주고받는 응용 계층 프로토콜입니다. 직접 소켓을 열어 HTTP 요청을 보내면 서버가 응답 헤더와 본문을 돌려줍니다.',
+      code: `import socket
+
+HOST = 'example.com'
+PORT = 80
+
+# TCP 연결 (3-way handshake)
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect((HOST, PORT))
+
+# HTTP/1.0 GET 요청 전송
+request = (
+    f'GET / HTTP/1.0\\r\\n'
+    f'Host: {HOST}\\r\\n'
+    f'\\r\\n'                 # 헤더 끝 = 빈 줄
+)
+sock.sendall(request.encode())
+
+# 응답 수신
+response = b''
+while chunk := sock.recv(4096):
+    response += chunk
+sock.close()
+
+# HTTP 응답: 상태줄 + 헤더 + 빈줄 + 본문
+print(response[:300].decode(errors='replace'))`,
+    },
   },
 ]

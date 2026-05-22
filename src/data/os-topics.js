@@ -76,7 +76,35 @@ int main() {
     return 0;
 }`,
     },
-    useCases: ['웹 브라우저 탭별 프로세스 격리', '셸의 명령어 실행', '서버의 요청별 워커 프로세스', 'OS 부팅 시 init / systemd'],
+    useCases: [
+      { name: '웹 브라우저 탭별 프로세스 격리', desc: '각 탭을 독립 프로세스로 실행해 한 탭의 충돌이 다른 탭에 영향을 주지 않도록 합니다. Chromium 아키텍처가 대표적입니다.' },
+      { name: '셸의 명령어 실행', desc: '셸이 fork()로 자식 프로세스를 복제하고, exec()으로 명령어 프로그램 이미지를 덮어 씌워 실행합니다.' },
+      { name: '서버의 요청별 워커 프로세스', desc: '웹 서버가 클라이언트 요청마다 fork()해 독립 프로세스에서 처리 — 하나가 죽어도 다른 요청에 영향이 없습니다.' },
+      { name: 'OS 부팅 시 init / systemd', desc: '커널이 부팅 후 PID 1번인 init(systemd)을 첫 번째 프로세스로 실행하고, 이 프로세스가 나머지 모든 프로세스를 fork합니다.' },
+    ],
+    useCaseExample: {
+      title: 'fork-exec 패턴 — 셸이 명령어를 실행하는 방법',
+      desc: '셸은 **fork()**로 자신의 복사본(자식)을 만든 뒤, 자식에서 **exec()**으로 실행할 명령어 파일로 이미지를 교체합니다. 부모는 **wait()**으로 자식 종료를 기다립니다.',
+      code: `#include <unistd.h>
+#include <sys/wait.h>
+#include <stdio.h>
+
+// "ls -l" 을 셸처럼 실행
+int main() {
+    pid_t pid = fork();                // 자식 프로세스 복제
+
+    if (pid == 0) {                    // --- 자식 ---
+        char *args[] = {"ls", "-l", NULL};
+        execvp("ls", args);            // 이미지를 ls로 교체
+        perror("exec");                // 여기까지 오면 exec 실패
+    } else {                           // --- 부모 ---
+        int status;
+        wait(&status);                 // 자식이 끝날 때까지 대기
+        printf("자식 종료: %d\\n", WEXITSTATUS(status));
+    }
+    return 0;
+}`,
+    },
   },
 
   // ── 스레드 ────────────────────────────────────────────────────
@@ -162,7 +190,37 @@ int main() {
     return 0;
 }`,
     },
-    useCases: ['웹 서버의 요청별 스레드', 'UI 스레드 + 백그라운드 작업 스레드', '게임의 렌더링·물리·입력 분리', '병렬 행렬 연산'],
+    useCases: [
+      { name: '웹 서버의 요청별 스레드', desc: '클라이언트 연결이 들어올 때마다 새 스레드를 생성해 병렬로 처리 — 프로세스보다 생성 비용이 적습니다.' },
+      { name: 'UI 스레드 + 백그라운드 작업 스레드', desc: '메인(UI) 스레드는 화면 응답을 유지하고, 별도 스레드가 파일 다운로드·DB 쿼리 같은 무거운 작업을 처리합니다.' },
+      { name: '게임의 렌더링·물리·입력 분리', desc: '렌더링·물리 연산·입력 처리를 각 스레드에 분리해 프레임 드롭 없이 60fps를 유지합니다.' },
+      { name: '병렬 행렬 연산', desc: '행렬 곱셈 같은 반복 연산을 코어 수만큼 스레드로 나눠 실행 시간을 단축합니다.' },
+    ],
+    useCaseExample: {
+      title: '뮤텍스로 보호하는 공유 카운터 — 여러 스레드가 안전하게 증가',
+      desc: '뮤텍스 없이 여러 스레드가 같은 변수를 동시에 증가하면 **경쟁 상태**가 생겨 결과가 틀립니다. `pthread_mutex_lock`으로 **임계 구역**을 보호하면 정확한 값을 얻습니다.',
+      code: `#include <pthread.h>
+#include <stdio.h>
+
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+int counter = 0;
+
+void *inc(void *arg) {
+    for (int i = 0; i < 100000; i++) {
+        pthread_mutex_lock(&lock);   // 진입 — 잠금 획득
+        counter++;                   // 임계 구역
+        pthread_mutex_unlock(&lock); // 진출 — 잠금 해제
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t t[4];
+    for (int i = 0; i < 4; i++) pthread_create(&t[i], NULL, inc, NULL);
+    for (int i = 0; i < 4; i++) pthread_join(t[i], NULL);
+    printf("counter = %d\\n", counter);  // 정확히 400000
+}`,
+    },
   },
 
   // ── CPU 스케줄링 ──────────────────────────────────────────────
@@ -236,7 +294,43 @@ void fcfs(int n, int burst[]) {
     printf("평균 대기 시간: %.2f\\n", (float)total / n);
 }`,
     },
-    useCases: ['OS 커널의 CPU 디스패처', '실시간 시스템(우선순위 기반)', '리눅스 CFS 스케줄러', '배치 처리 시스템'],
+    useCases: [
+      { name: 'OS 커널의 CPU 디스패처', desc: '준비 큐에서 선택한 프로세스에게 CPU를 실제로 넘겨주는 디스패처가 스케줄링 결과를 실행합니다.' },
+      { name: '실시간 시스템(우선순위 기반)', desc: '마감 시간이 있는 실시간 태스크는 우선순위 기반 선점 스케줄링으로 제시간에 완료를 보장합니다.' },
+      { name: '리눅스 CFS 스케줄러', desc: '리눅스의 완전 공정 스케줄러(CFS)는 모든 프로세스가 동등한 CPU 시간을 받도록 가상 실행 시간을 추적합니다.' },
+      { name: '배치 처리 시스템', desc: '사용자 응답이 불필요한 배치 작업은 SJF로 처리량을 극대화하거나, 우선순위를 낮춰 유휴 시간에 실행합니다.' },
+    ],
+    useCaseExample: {
+      title: 'RR 스케줄러 시뮬레이터 — 평균 대기·반환 시간 계산',
+      desc: '라운드 로빈(RR)은 각 프로세스에 **타임 퀀텀**만큼만 CPU를 준 뒤 준비 큐 끝으로 보냅니다. 퀀텀이 작을수록 응답성은 높아지지만 문맥 교환 횟수도 늘어납니다.',
+      code: `#include <stdio.h>
+#include <string.h>
+
+#define N 3
+int burst[]     = {10, 6, 4};
+int remaining[] = {10, 6, 4};
+int quantum = 4;
+
+int main() {
+    int time = 0, done = 0, wait[N] = {0};
+
+    while (done < N) {
+        for (int i = 0; i < N; i++) {
+            if (remaining[i] == 0) continue;
+            int run = remaining[i] < quantum ? remaining[i] : quantum;
+            remaining[i] -= run;
+            time += run;
+            if (remaining[i] == 0) {
+                wait[i] = time - burst[i];  // 완료 시각 − 실행 시간
+                done++;
+            }
+        }
+    }
+    int total = 0;
+    for (int i = 0; i < N; i++) total += wait[i];
+    printf("평균 대기 시간: %.2f\\n", (float)total / N);
+}`,
+    },
   },
 
   // ── 프로세스 동기화 ───────────────────────────────────────────
@@ -313,7 +407,45 @@ void *increment(void *arg) {
     return NULL;
 }`,
     },
-    useCases: ['은행 계좌 잔액 동시 갱신', '생산자-소비자 버퍼', '데이터베이스 트랜잭션 잠금', '공유 카운터·통계 집계'],
+    useCases: [
+      { name: '은행 계좌 잔액 동시 갱신', desc: '여러 스레드가 동시에 잔액을 갱신하면 경쟁 상태가 생겨 금액이 사라질 수 있습니다. 뮤텍스로 임계 구역을 보호합니다.' },
+      { name: '생산자-소비자 버퍼', desc: '생산자 스레드와 소비자 스레드가 공유 버퍼로 협력 — 세마포어로 버퍼 가득/빔 조건을 동기화합니다.' },
+      { name: '데이터베이스 트랜잭션 잠금', desc: '같은 행을 동시에 수정하는 트랜잭션을 직렬화해 데이터 무결성을 보장합니다. 낙관·비관 잠금 전략을 씁니다.' },
+      { name: '공유 카운터·통계 집계', desc: '웹 서버의 요청 수 카운터처럼 여러 스레드가 동시에 업데이트하는 값에는 원자적 연산이나 뮤텍스가 필요합니다.' },
+    ],
+    useCaseExample: {
+      title: '세마포어로 구현하는 생산자-소비자 — 버퍼 넘침·고갈 방지',
+      desc: '**empty** 세마포어는 남은 빈 슬롯을, **full** 세마포어는 채워진 슬롯을 셉니다. 생산자는 empty를 소비하고 full을 증가, 소비자는 full을 소비하고 empty를 증가합니다.',
+      code: `#include <semaphore.h>
+#include <pthread.h>
+#include <stdio.h>
+
+#define SIZE 5
+int buf[SIZE], in = 0, out = 0;
+sem_t empty, full;
+pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+
+void *producer(void *arg) {
+    for (int i = 0; i < 10; i++) {
+        sem_wait(&empty);             // 빈 슬롯 대기
+        pthread_mutex_lock(&m);
+        buf[in] = i;
+        in = (in + 1) % SIZE;
+        pthread_mutex_unlock(&m);
+        sem_post(&full);              // 채워진 슬롯 +1
+    }
+    return NULL;
+}
+
+int main() {
+    sem_init(&empty, 0, SIZE);
+    sem_init(&full,  0, 0);
+    pthread_t p;
+    pthread_create(&p, NULL, producer, NULL);
+    pthread_join(p, NULL);
+    printf("생산 완료\\n");
+}`,
+    },
   },
 
   // ── 프로세스 간 통신 (IPC) ────────────────────────────────────
@@ -401,7 +533,38 @@ int main() {
     return 0;
 }`,
     },
-    useCases: ['셸 파이프라인 (ps -ef | grep)', '클라이언트-서버 프로세스 통신', '생산자-소비자 버퍼 공유', '리눅스 데몬 간 메시지 전달'],
+    useCases: [
+      { name: '셸 파이프라인 (ps -ef | grep)', desc: '파이프(|)는 앞 명령어의 stdout을 뒤 명령어의 stdin으로 연결하는 이름 없는 파이프입니다.' },
+      { name: '클라이언트-서버 프로세스 통신', desc: '독립 프로세스인 웹 서버와 DB 프로세스 사이에 소켓이나 공유 메모리로 빠른 IPC를 구현합니다.' },
+      { name: '생산자-소비자 버퍼 공유', desc: '메시지 큐나 공유 메모리로 생산자 프로세스와 소비자 프로세스가 데이터를 교환합니다.' },
+      { name: '리눅스 데몬 간 메시지 전달', desc: 'udev·D-Bus 같은 시스템 데몬들이 이름 있는 파이프나 소켓으로 이벤트를 주고받습니다.' },
+    ],
+    useCaseExample: {
+      title: '이름 있는 파이프(FIFO)로 임의 프로세스 간 통신',
+      desc: '이름 없는 파이프는 부모-자식 간에만 쓸 수 있지만, **FIFO**는 파일 이름이 있어 무관한 프로세스끼리도 통신할 수 있습니다. 파일을 열듯 open()하고 read()/write()로 주고받습니다.',
+      code: `// 송신 측 (sender.c)
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+
+int main() {
+    mkfifo("/tmp/myfifo", 0666);       // FIFO 파일 생성
+    int fd = open("/tmp/myfifo", O_WRONLY);
+    write(fd, "hello fifo", 10);      // 수신자가 읽을 때까지 블록
+    close(fd);
+    return 0;
+}
+
+// 수신 측 (receiver.c)
+// int main() {
+//     int fd = open("/tmp/myfifo", O_RDONLY);
+//     char buf[20] = {0};
+//     read(fd, buf, 10);
+//     printf("수신: %s\\n", buf);   // 수신: hello fifo
+//     close(fd);
+//     unlink("/tmp/myfifo");         // FIFO 파일 삭제
+// }`,
+    },
   },
 
   // ── 교착 상태 ─────────────────────────────────────────────────
@@ -483,7 +646,41 @@ void *thread2() {
 }
 // 해결: 모든 스레드가 같은 순서(A→B)로 잠금을 획득`,
     },
-    useCases: ['DB 트랜잭션 락 경합', '멀티스레드 잠금 순서 버그', 'OS 자원 할당 검증', '분산 시스템의 분산 락'],
+    useCases: [
+      { name: 'DB 트랜잭션 락 경합', desc: '두 트랜잭션이 서로 상대방이 잠근 행의 잠금을 기다리면 교착 상태가 됩니다. DBMS는 이를 탐지해 한 트랜잭션을 롤백합니다.' },
+      { name: '멀티스레드 잠금 순서 버그', desc: '두 스레드가 동일한 두 잠금을 반대 순서로 획득하면 교착 상태가 됩니다. 잠금 획득 순서를 통일하는 것이 가장 흔한 예방법입니다.' },
+      { name: 'OS 자원 할당 검증', desc: '은행원 알고리즘으로 프로세스에 자원을 할당하기 전에 안전 상태가 유지되는지 검사합니다.' },
+      { name: '분산 시스템의 분산 락', desc: '여러 노드가 공유 자원에 접근할 때 분산 잠금 관리자(Redis 등)로 교착을 방지합니다.' },
+    ],
+    useCaseExample: {
+      title: '잠금 순서 통일로 교착 방지 — 항상 A → B 순으로 획득',
+      desc: '두 스레드가 잠금 A·B를 **반대 순서**로 요청하면 순환 대기가 생겨 교착이 됩니다. **모든 스레드가 같은 순서(A → B)**로 잠금을 획득하면 순환 대기 조건이 깨집니다.',
+      code: `#include <pthread.h>
+#include <stdio.h>
+
+pthread_mutex_t A = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t B = PTHREAD_MUTEX_INITIALIZER;
+
+// ❌ 교착 위험: thread1은 A→B, thread2는 B→A 순으로 획득
+// void *bad2(void *_) { lock(&B); lock(&A); ... }
+
+// ✅ 수정: 항상 A → B 순으로 획득
+void *work(void *arg) {
+    pthread_mutex_lock(&A);           // 먼저 A
+    pthread_mutex_lock(&B);           // 그 다음 B
+    printf("thread %ld: 임계 구역\\n", (long)arg);
+    pthread_mutex_unlock(&B);
+    pthread_mutex_unlock(&A);
+    return NULL;
+}
+
+int main() {
+    pthread_t t[2];
+    for (long i = 0; i < 2; i++)
+        pthread_create(&t[i], NULL, work, (void *)i);
+    for (int i = 0; i < 2; i++) pthread_join(t[i], NULL);
+}`,
+    },
   },
 
   // ── 메모리 관리 ───────────────────────────────────────────────
@@ -556,7 +753,42 @@ int translate(int logical, int base, int limit) {
     return base + logical;                   // 물리 주소
 }`,
     },
-    useCases: ['초기 OS의 메모리 분할', '임베디드 시스템 메모리 배치', 'malloc 힙 할당자', '메모리 풀(memory pool)'],
+    useCases: [
+      { name: '초기 OS의 메모리 분할', desc: '여러 프로세스가 물리 메모리를 분할해서 사용하던 초기 다중 프로그래밍 방식으로, 외부 단편화가 주된 과제였습니다.' },
+      { name: '임베디드 시스템 메모리 배치', desc: '제한된 RAM을 가진 마이크로컨트롤러에서 스택·힙·데이터 영역을 링커 스크립트로 명시적으로 배치합니다.' },
+      { name: 'malloc 힙 할당자', desc: 'malloc/free는 내부적으로 First Fit 또는 Best Fit 전략으로 힙 영역의 빈 블록을 관리해 메모리를 동적으로 할당합니다.' },
+      { name: '메모리 풀(memory pool)', desc: '게임·고성능 서버에서는 미리 큰 블록을 잡아두고 내부적으로 나눠주는 메모리 풀로 malloc 오버헤드와 단편화를 줄입니다.' },
+    ],
+    useCaseExample: {
+      title: 'First Fit vs Best Fit — 동일 요청에 다른 배치 결과',
+      desc: '**First Fit**은 첫 번째로 들어가는 빈 공간에 배치해 빠르고, **Best Fit**은 가장 딱 맞는 공간에 배치해 큰 공간을 남깁니다. 둘 다 단편화 문제를 겪지만 분포가 다릅니다.',
+      code: `#include <stdio.h>
+
+int holes[] = {100, 500, 200, 300, 600};  // 빈 공간(홀) 크기
+int n = 5;
+
+int first_fit(int size) {
+    for (int i = 0; i < n; i++)
+        if (holes[i] >= size) return i;
+    return -1;
+}
+
+int best_fit(int size) {
+    int best = -1;
+    for (int i = 0; i < n; i++)
+        if (holes[i] >= size && (best == -1 || holes[i] < holes[best]))
+            best = i;
+    return best;
+}
+
+int main() {
+    int req = 212;
+    int ff = first_fit(req), bf = best_fit(req);
+    printf("First Fit: 홀 %d (크기 %d)\\n", ff, holes[ff]);
+    printf("Best  Fit: 홀 %d (크기 %d)\\n", bf, holes[bf]);
+    // First Fit → 홀 1 (500), Best Fit → 홀 3 (300)
+}`,
+    },
   },
 
   // ── 페이징 ────────────────────────────────────────────────────
@@ -620,7 +852,35 @@ int translate(int logical, int page_table[]) {
     return (frame << OFFSET_BITS) | offset;          // 물리 주소
 }`,
     },
-    useCases: ['현대 OS의 표준 메모리 관리', '가상 메모리의 기반', 'CPU의 MMU 하드웨어', 'mmap 메모리 매핑'],
+    useCases: [
+      { name: '현대 OS의 표준 메모리 관리', desc: '리눅스·윈도우·macOS 모두 페이징을 기반으로 프로세스마다 독립된 가상 주소 공간을 제공합니다.' },
+      { name: '가상 메모리의 기반', desc: '가상 메모리는 페이징 위에 구현됩니다. 페이지가 RAM에 없으면 디스크에서 읽어오는 요구 페이징이 가상 메모리의 핵심입니다.' },
+      { name: 'CPU의 MMU 하드웨어', desc: 'CPU 내부의 MMU가 TLB를 활용해 논리 주소를 물리 주소로 변환 — 소프트웨어 없이 하드웨어 레벨에서 수행됩니다.' },
+      { name: 'mmap 메모리 매핑', desc: 'mmap() 시스템 콜은 파일을 페이지 단위로 가상 주소 공간에 매핑해, 파일 읽기를 메모리 접근으로 처리합니다.' },
+    ],
+    useCaseExample: {
+      title: '페이지 테이블로 논리 주소 → 물리 주소 변환',
+      desc: '논리 주소의 **상위 비트**가 페이지 번호(p), **하위 비트**가 오프셋(d)입니다. 페이지 테이블에서 p → 프레임 번호(f)를 얻은 뒤 물리 주소 = f × 페이지크기 + d로 계산합니다.',
+      code: `#include <stdio.h>
+
+#define PAGE_BITS 12                   // 페이지 크기 = 4KB
+#define OFFSET_MASK ((1 << PAGE_BITS) - 1)
+
+int page_table[] = {5, 2, 8, 3};      // page 0→frame 5, 1→2, 2→8, 3→3
+
+int translate(int logical) {
+    int page   = logical >> PAGE_BITS;         // 상위 비트: 페이지 번호
+    int offset = logical & OFFSET_MASK;        // 하위 12비트: 오프셋
+    int frame  = page_table[page];             // 프레임 번호
+    return (frame << PAGE_BITS) | offset;      // 물리 주소
+}
+
+int main() {
+    int la = (1 << PAGE_BITS) + 100;   // 페이지 1, 오프셋 100
+    printf("논리 0x%05X → 물리 0x%05X\\n", la, translate(la));
+    // page 1 → frame 2, 물리 = (2 << 12) + 100 = 0x2064
+}`,
+    },
   },
 
   // ── 세그먼테이션 ──────────────────────────────────────────────
@@ -693,7 +953,39 @@ int translate(Segment table[], int seg, int offset) {
     return table[seg].base + offset;        // 물리 주소
 }`,
     },
-    useCases: ['x86의 세그먼트 레지스터(CS/DS/SS)', '코드·데이터·스택 영역 분리', '공유 라이브러리 세그먼트', '컴파일러의 모듈 단위 적재'],
+    useCases: [
+      { name: 'x86의 세그먼트 레지스터(CS/DS/SS)', desc: 'x86 CPU는 CS(코드)·DS(데이터)·SS(스택) 레지스터로 각 세그먼트의 기준 주소를 가리켜 주소 변환에 활용합니다.' },
+      { name: '코드·데이터·스택 영역 분리', desc: '프로세스의 코드·데이터·힙·스택을 별도 세그먼트로 분리해 접근 권한(읽기 전용, 실행 가능 등)을 달리 설정합니다.' },
+      { name: '공유 라이브러리 세그먼트', desc: '여러 프로세스가 동일한 코드 세그먼트(libc 등)를 공유해 메모리를 절약합니다. 데이터 세그먼트만 프로세스별로 따로 가집니다.' },
+      { name: '컴파일러의 모듈 단위 적재', desc: '링커가 각 오브젝트 파일의 코드·데이터 세그먼트를 모아 실행 파일을 구성합니다.' },
+    ],
+    useCaseExample: {
+      title: '세그먼트 테이블로 주소 변환 및 경계 검사',
+      desc: '(세그먼트 번호, 오프셋) 형태의 논리 주소에서 세그먼트 테이블의 **(base, limit)**을 참조해 물리 주소를 계산합니다. 오프셋이 limit을 넘으면 **보호 위반**으로 트랩이 발생합니다.',
+      code: `#include <stdio.h>
+
+typedef struct { int base, limit; } Seg;
+
+Seg table[] = {
+    {0x1000, 0x400},   // 세그먼트 0: base=0x1000, 크기=1KB
+    {0x5000, 0x200},   // 세그먼트 1: base=0x5000, 크기=512B
+};
+
+int translate(int seg, int offset) {
+    if (offset < 0 || offset >= table[seg].limit) {
+        printf("세그먼트 %d 보호 위반 (offset=%d, limit=%d)\\n",
+               seg, offset, table[seg].limit);
+        return -1;
+    }
+    return table[seg].base + offset;
+}
+
+int main() {
+    printf("seg0 off=100 → 0x%X\\n", translate(0, 100));  // 0x1064
+    printf("seg1 off=100 → 0x%X\\n", translate(1, 100));  // 0x5064
+    translate(1, 0x300);   // 보호 위반 (0x300 >= 0x200)
+}`,
+    },
   },
 
   // ── 가상 메모리 ───────────────────────────────────────────────
@@ -765,7 +1057,46 @@ int access_page(int p, PageTableEntry pt[]) {
     return frame;
 }`,
     },
-    useCases: ['모든 현대 OS의 메모리 모델', 'mmap 파일 매핑', '메모리 초과 할당(overcommit)', '프로세스 간 메모리 격리'],
+    useCases: [
+      { name: '모든 현대 OS의 메모리 모델', desc: '리눅스·윈도우·macOS 모두 가상 메모리를 써서 프로세스마다 독립적이고 큰 주소 공간을 제공하고 실제 메모리보다 많은 프로세스를 동시에 실행합니다.' },
+      { name: 'mmap 파일 매핑', desc: 'mmap()으로 파일을 가상 주소에 매핑하면 read/write 없이 메모리 접근만으로 파일을 읽고 씁니다. 큰 파일도 필요한 페이지만 RAM에 올립니다.' },
+      { name: '메모리 초과 할당(overcommit)', desc: 'Linux는 실제 RAM보다 더 많은 가상 메모리를 프로세스에 할당(overcommit)합니다. 실제 사용 전까지는 물리 메모리를 쓰지 않기 때문입니다.' },
+      { name: '프로세스 간 메모리 격리', desc: '각 프로세스가 독립된 가상 주소 공간을 가지므로 한 프로세스가 다른 프로세스의 메모리를 침범할 수 없습니다.' },
+    ],
+    useCaseExample: {
+      title: '페이지 폴트 시뮬레이션 — 유효 비트로 메모리 적재 추적',
+      desc: '각 페이지는 **유효 비트(valid)**로 RAM에 있는지 디스크에 있는지를 표시합니다. invalid면 **페이지 폴트**가 발생하고, OS가 디스크에서 해당 페이지를 빈 프레임으로 읽어옵니다.',
+      code: `#include <stdio.h>
+
+typedef struct { int frame; int valid; } PageEntry;
+
+PageEntry pt[8] = {
+    {3, 1}, {-1, 0}, {7, 1}, {-1, 0},
+    {-1, 0}, {5, 1}, {-1, 0}, {2, 1},
+};
+int faults = 0;
+
+int access_page(int page) {
+    if (pt[page].valid) {
+        return pt[page].frame;       // 적중
+    }
+    faults++;
+    // OS가 여기서 디스크에서 빈 프레임으로 페이지 적재
+    pt[page].frame = page + 10;     // 임의 프레임 번호 배정
+    pt[page].valid = 1;
+    return pt[page].frame;
+}
+
+int main() {
+    int refs[] = {0, 1, 3, 5, 1, 2, 3};
+    for (int i = 0; i < 7; i++) {
+        int f = access_page(refs[i]);
+        printf("page %d → frame %d%s\\n",
+               refs[i], f, pt[refs[i]].valid == 1 && faults > 0 ? "" : "");
+    }
+    printf("총 페이지 폴트: %d\\n", faults);
+}`,
+    },
   },
 
   // ── 페이지 교체 ───────────────────────────────────────────────
@@ -843,7 +1174,51 @@ int fifo(int ref[], int n, int frames) {
     return faults;
 }`,
     },
-    useCases: ['OS 가상 메모리 관리자', 'CPU·DB 버퍼 캐시', '웹 브라우저 캐시', 'CDN 콘텐츠 캐시'],
+    useCases: [
+      { name: 'OS 가상 메모리 관리자', desc: 'Linux는 Clock 알고리즘(LRU 근사)을 써서 참조 비트가 0인 페이지를 대상으로 교체합니다. 실용적이면서 폴트 수가 낮습니다.' },
+      { name: 'CPU·DB 버퍼 캐시', desc: 'DB 버퍼 풀은 LRU 또는 변형 알고리즘으로 자주 쓰는 페이지를 캐시에 유지해 디스크 I/O를 줄입니다.' },
+      { name: '웹 브라우저 캐시', desc: '브라우저 캐시는 LRU·LFU 조합으로 자주 방문하거나 최근에 본 페이지를 로컬에 보관해 재접속 속도를 높입니다.' },
+      { name: 'CDN 콘텐츠 캐시', desc: 'CDN 엣지 서버는 LRU 기반으로 인기 있는 콘텐츠를 유지하고, 오래된 자원을 원본 서버에서 다시 가져옵니다.' },
+    ],
+    useCaseExample: {
+      title: 'FIFO vs LRU — 같은 참조열에서 폴트 수 비교',
+      desc: 'FIFO는 가장 먼저 들어온 페이지를, LRU는 가장 오래 참조 안 된 페이지를 교체합니다. 같은 참조열에서 LRU가 **폴트 수가 더 적습니다** — 지역성을 더 잘 활용하기 때문입니다.',
+      code: `#include <stdio.h>
+
+int frames = 3;
+int ref[] = {7,0,1,2,0,3,0,4,2,3};
+int n = 10;
+
+int fifo_faults() {
+    int slot[3] = {-1,-1,-1}, next = 0, faults = 0;
+    for (int i = 0; i < n; i++) {
+        int hit = 0;
+        for (int j = 0; j < frames; j++) if (slot[j] == ref[i]) hit = 1;
+        if (hit) continue;
+        slot[next] = ref[i];
+        next = (next + 1) % frames;
+        faults++;
+    }
+    return faults;
+}
+
+int lru_faults() {
+    int slot[3] = {-1,-1,-1}, last[3] = {0}, faults = 0;
+    for (int t = 0; t < n; t++) {
+        int hit = -1;
+        for (int j = 0; j < frames; j++) if (slot[j] == ref[t]) hit = j;
+        if (hit >= 0) { last[hit] = t; continue; }
+        int old = 0;
+        for (int j = 1; j < frames; j++) if (last[j] < last[old]) old = j;
+        slot[old] = ref[t]; last[old] = t; faults++;
+    }
+    return faults;
+}
+
+int main() {
+    printf("FIFO 폴트: %d\\nLRU  폴트: %d\\n", fifo_faults(), lru_faults());
+}`,
+    },
   },
 
   // ── 파일 시스템 ───────────────────────────────────────────────
@@ -915,7 +1290,47 @@ typedef struct {
     int double_indirect;         // 이중 간접 블록
 } inode;`,
     },
-    useCases: ['ext4 · NTFS · APFS', 'USB·SSD 저장 관리', '데이터베이스 파일 저장', '로그·백업 관리'],
+    useCases: [
+      { name: 'ext4 · NTFS · APFS', desc: '리눅스의 ext4, 윈도우의 NTFS, macOS의 APFS는 모두 색인 할당(inode/MFT)과 저널링으로 성능과 신뢰성을 확보합니다.' },
+      { name: 'USB·SSD 저장 관리', desc: 'FAT32·exFAT는 임베디드 기기·USB에서 범용 파일 시스템으로 쓰입니다. SSD는 플래시 친화적 파일 시스템(F2FS)도 사용합니다.' },
+      { name: '데이터베이스 파일 저장', desc: 'DB 엔진은 자체 파일 포맷(페이지 단위)으로 데이터를 저장해 OS 파일 시스템 위에서 블록을 직접 관리합니다.' },
+      { name: '로그·백업 관리', desc: '저널링 파일 시스템은 메타데이터 변경을 로그에 먼저 기록해 갑작스러운 전원 차단 후에도 파일 시스템 일관성을 복구합니다.' },
+    ],
+    useCaseExample: {
+      title: 'Unix inode — 직접 블록과 간접 블록으로 파일 블록 조회',
+      desc: 'inode는 **12개의 직접 블록 포인터**로 작은 파일을 빠르게 접근하고, 큰 파일은 **단일/이중 간접 블록**으로 더 많은 블록을 가리킵니다. k번째 블록 주소를 O(1)에 얻습니다.',
+      code: `#include <stdio.h>
+
+#define DIRECT 12
+#define BLOCK_SIZE 4096
+#define PTR_PER_BLOCK (BLOCK_SIZE / (int)sizeof(int))  // 1024
+
+typedef struct {
+    int direct[DIRECT];      // 직접 블록 포인터 12개
+    int single_indirect;     // 단일 간접 블록 번호
+    int double_indirect;     // 이중 간접 블록 번호
+    int size;
+} Inode;
+
+void locate_block(Inode *in, int k) {
+    if (k < DIRECT) {
+        printf("직접 블록 direct[%d] = %d\\n", k, in->direct[k]);
+    } else if (k < DIRECT + PTR_PER_BLOCK) {
+        printf("단일 간접 블록 — indirect[%d]\\n", k - DIRECT);
+    } else {
+        int k2 = k - DIRECT - PTR_PER_BLOCK;
+        printf("이중 간접 블록 — [%d][%d]\\n",
+               k2 / PTR_PER_BLOCK, k2 % PTR_PER_BLOCK);
+    }
+}
+
+int main() {
+    Inode f = { .direct = {10,11,12,13,14,15,16,17,18,19,20,21},
+                .single_indirect = 99 };
+    locate_block(&f, 5);    // 직접
+    locate_block(&f, 15);   // 단일 간접
+}`,
+    },
   },
 
   // ── 디스크 스케줄링 ───────────────────────────────────────────
@@ -986,6 +1401,45 @@ int fcfs_distance(int head, int req[], int n) {
     return total;
 }`,
     },
-    useCases: ['HDD 입출력 스케줄러', 'OS 블록 장치 I/O 큐', '데이터베이스 디스크 접근 최적화', 'RAID 컨트롤러'],
+    useCases: [
+      { name: 'HDD 입출력 스케줄러', desc: '리눅스 커널의 mq-deadline·BFQ 스케줄러가 블록 I/O 요청을 재배열해 헤드 이동을 최소화하고 응답 시간을 줄입니다.' },
+      { name: 'OS 블록 장치 I/O 큐', desc: 'OS는 프로세스들의 디스크 I/O 요청을 큐에 모아 스케줄링 알고리즘으로 처리 순서를 정한 뒤 장치 드라이버로 내려보냅니다.' },
+      { name: '데이터베이스 디스크 접근 최적화', desc: 'DB가 연속된 페이지를 몰아서 읽는 프리페치와 쓰기를 모아서 처리하는 버퍼 풀 플러시도 헤드 이동을 줄이는 최적화입니다.' },
+      { name: 'RAID 컨트롤러', desc: 'RAID 컨트롤러는 여러 드라이브에 분산된 데이터를 병렬로 읽어 각 드라이브의 헤드 이동 거리를 줄입니다.' },
+    ],
+    useCaseExample: {
+      title: 'SSTF vs FCFS — 같은 요청 큐에서 총 이동 거리 비교',
+      desc: 'SSTF는 항상 가장 가까운 트랙을 먼저 처리해 이동 거리가 짧지만, 멀리 있는 요청이 기아에 빠질 수 있습니다. FCFS는 공정하지만 헤드가 비효율적으로 왔다 갔다 합니다.',
+      code: `#include <stdio.h>
+#include <stdlib.h>
+
+#define N 8
+int req[] = {98, 183, 37, 122, 14, 124, 65, 67};
+int head = 53;
+
+int fcfs_distance() {
+    int dist = 0, cur = head;
+    for (int i = 0; i < N; i++) { dist += abs(req[i] - cur); cur = req[i]; }
+    return dist;
+}
+
+int sstf_distance() {
+    int done[N] = {0}, cur = head, dist = 0;
+    for (int k = 0; k < N; k++) {
+        int best = -1;
+        for (int i = 0; i < N; i++)
+            if (!done[i] && (best == -1 ||
+                abs(req[i]-cur) < abs(req[best]-cur))) best = i;
+        dist += abs(req[best] - cur);
+        cur = req[best]; done[best] = 1;
+    }
+    return dist;
+}
+
+int main() {
+    printf("FCFS: %d 트랙\\nSSTF: %d 트랙\\n",
+           fcfs_distance(), sstf_distance());
+}`,
+    },
   },
 ]

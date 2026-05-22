@@ -98,7 +98,40 @@ for (int i = 1; i <= 10; i++) {
   4. 증감식
         └─────────▶ 2번으로`,
     },
-    useCases: ['점수 → 학점 변환', '메뉴 선택 분기 처리', '구구단·누적 합 계산', '입력 검증 반복', '배열·컬렉션 순회'],
+    useCases: [
+      { name: '점수 → 학점 변환', desc: '점수 범위별로 A·B·C·D·F 학점을 매기는 로직은 if-else if 연쇄로 자연스럽게 표현됩니다.' },
+      { name: '메뉴 선택 분기 처리', desc: '1·2·3·4처럼 정해진 값에 따라 다른 기능을 실행할 때 switch문이 깔끔하고 효율적입니다.' },
+      { name: '구구단·누적 합 계산', desc: '정해진 횟수만큼 반복해야 할 때 for문을 씁니다. 구구단·1~n 합 같은 계산이 전형적인 예입니다.' },
+      { name: '입력 검증 반복', desc: '올바른 입력이 들어올 때까지 반복해야 할 때 while문이나 do-while문으로 반복 조건을 자유롭게 설정합니다.' },
+      { name: '배열·컬렉션 순회', desc: '배열의 모든 요소를 처리할 때 for(int i=0; i<arr.length; i++) 또는 향상된 for문(for-each)을 씁니다.' },
+    ],
+    useCaseExample: {
+      title: '구구단 출력 — 중첩 for문으로 홀수 단만 선택 출력',
+      desc: '2중 for문에서 바깥 루프가 단(2~9), 안쪽 루프가 곱할 수(1~9)를 담당합니다. **continue**로 짝수 단을 건너뛰는 예도 함께 보여줍니다.',
+      code: `// 구구단 — 홀수 단만 출력 (continue 활용)
+for (int dan = 2; dan <= 9; dan++) {
+    if (dan % 2 == 0) continue;       // 짝수 단은 건너뜀
+
+    System.out.println("--- " + dan + "단 ---");
+    for (int i = 1; i <= 9; i++) {
+        System.out.printf("%d × %d = %2d%n", dan, i, dan * i);
+    }
+}
+
+// 1~100 합 — for문
+int sum = 0;
+for (int i = 1; i <= 100; i++) sum += i;
+System.out.println("1~100 합: " + sum);  // 5050
+
+// 입력 검증 — do-while (최소 1번 실행)
+java.util.Scanner sc = new java.util.Scanner(System.in);
+int age;
+do {
+    System.out.print("나이 입력(1~120): ");
+    age = sc.nextInt();
+} while (age < 1 || age > 120);  // 범위 벗어나면 재입력
+System.out.println("입력된 나이: " + age);`,
+    },
   },
 
   // ── 배열 ──────────────────────────────────────────────────────
@@ -176,7 +209,37 @@ grid[1][2] = 7;
 int[] copy = new int[nums.length];
 System.arraycopy(nums, 0, copy, 0, nums.length);`,
     },
-    useCases: ['여러 학생의 점수 관리', '이미지의 픽셀 데이터(2차원)', '게임 보드·지도', '입력값 일괄 처리', 'main(String[] args)의 명령행 인자'],
+    useCases: [
+      { name: '여러 학생의 점수 관리', desc: '학생 30명의 점수를 int[] 배열로 선언하면 하나의 이름으로 모든 점수를 순회하며 평균·최대·최소를 계산합니다.' },
+      { name: '이미지의 픽셀 데이터(2차원)', desc: '너비×높이 크기의 int[][] 2차원 배열로 각 픽셀의 RGB 값을 저장하고 처리합니다.' },
+      { name: '게임 보드·지도', desc: '바둑판·체스판처럼 격자형 공간은 2차원 배열로 자연스럽게 표현할 수 있고, [행][열] 인덱스로 직접 접근합니다.' },
+      { name: '입력값 일괄 처리', desc: '사용자에게 여러 개의 값을 입력받아 배열에 저장한 뒤 정렬·검색·통계 처리를 수행합니다.' },
+      { name: 'main(String[] args)의 명령행 인자', desc: 'java Main arg1 arg2처럼 실행하면 args[0]="arg1", args[1]="arg2"로 전달됩니다. 배열로 묶여 개수가 유동적입니다.' },
+    ],
+    useCaseExample: {
+      title: '버블 정렬 — int[] 배열을 직접 다루는 교환 기반 정렬',
+      desc: '인접한 두 요소를 비교해 큰 값을 오른쪽으로 밀어내기를 반복합니다. 배열 인덱스 조작과 두 값 교환(swap) 패턴을 익히기에 좋습니다.',
+      code: `public class BubbleSort {
+    public static void main(String[] args) {
+        int[] arr = {64, 34, 25, 12, 22, 11, 90};
+        int n = arr.length;
+
+        for (int i = 0; i < n - 1; i++) {
+            for (int j = 0; j < n - 1 - i; j++) {
+                if (arr[j] > arr[j + 1]) {   // 앞이 크면 교환
+                    int tmp    = arr[j];
+                    arr[j]     = arr[j + 1];
+                    arr[j + 1] = tmp;
+                }
+            }
+        }
+
+        // 정렬 결과 출력
+        for (int v : arr) System.out.print(v + " ");
+        // 11 12 22 25 34 64 90
+    }
+}`,
+    },
   },
 
   // ── 객체지향 (생성자와 메모리) ────────────────────────────────
@@ -247,7 +310,47 @@ public class Main {
     }
 }`,
     },
-    useCases: ['실세계 개체를 클래스로 모델링', '생성된 인스턴스 수를 static으로 집계', 'this()로 생성자 코드 재사용', '스택 오버플로우·메모리 누수 이해', 'GC 동작 원리의 토대'],
+    useCases: [
+      { name: '실세계 개체를 클래스로 모델링', desc: '자동차·은행 계좌·학생 같은 실세계 개체를 클래스로 표현하고, new로 여러 인스턴스를 만들어 독립적으로 상태를 관리합니다.' },
+      { name: '생성된 인스턴스 수를 static으로 집계', desc: 'static 변수는 모든 인스턴스가 공유하므로, 생성자에서 count++하면 총 인스턴스 수를 추적할 수 있습니다.' },
+      { name: 'this()로 생성자 코드 재사용', desc: '매개변수 없는 기본 생성자에서 this(기본값)를 호출해 초기화 코드를 한 곳에 모으고 중복을 줄입니다.' },
+      { name: '스택 오버플로우·메모리 누수 이해', desc: '메서드 호출 스택 프레임과 힙 객체의 동작 원리를 이해하면 재귀 깊이 제한(StackOverflow)이나 GC가 수거 못하는 메모리 누수 원인을 파악할 수 있습니다.' },
+      { name: 'GC 동작 원리의 토대', desc: '힙의 객체에 참조변수가 하나도 없으면 GC 대상이 됩니다. 언제 객체가 수거되는지 알려면 힙·스택 메모리 구조를 이해해야 합니다.' },
+    ],
+    useCaseExample: {
+      title: 'BankAccount 클래스 — 인스턴스 변수와 static 변수 구분',
+      desc: '잔액(balance)은 계좌마다 다르므로 **인스턴스 변수(힙)**, 총 계좌 수(count)는 모든 인스턴스가 공유하므로 **static 변수(메서드 영역)**입니다.',
+      code: `class BankAccount {
+    String owner;           // 인스턴스 변수 (힙)
+    int balance;
+    static int count = 0;  // 클래스 변수 (메서드 영역, 공유)
+
+    BankAccount(String owner, int balance) {
+        this.owner   = owner;   // this = 힙의 현재 인스턴스
+        this.balance = balance;
+        count++;                // 모든 인스턴스가 공유
+    }
+
+    void deposit(int amount)  { balance += amount; }
+    void withdraw(int amount) { balance -= amount; }
+
+    @Override
+    public String toString() {
+        return owner + ": " + balance + "원";
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        BankAccount a = new BankAccount("김철수", 10000);
+        BankAccount b = new BankAccount("이영희",  5000);
+        a.deposit(3000);
+        System.out.println(a);                       // 김철수: 13000원
+        System.out.println(b);                       // 이영희: 5000원
+        System.out.println("계좌 수: " + BankAccount.count);  // 2
+    }
+}`,
+    },
   },
 
   // ── 예외 처리 ─────────────────────────────────────────────────
@@ -321,7 +424,40 @@ void readFile() throws java.io.IOException {
     // ...
 }`,
     },
-    useCases: ['파일·네트워크 입출력 오류 대비', '0으로 나누기·널 참조 방지', '사용자 입력 검증', 'finally로 자원(파일·연결) 정리', '예외 메시지로 디버깅'],
+    useCases: [
+      { name: '파일·네트워크 입출력 오류 대비', desc: '파일이 없거나 네트워크가 끊길 수 있으므로 IOException을 catch해서 오류 메시지를 보여주거나 재시도 로직을 실행합니다.' },
+      { name: '0으로 나누기·널 참조 방지', desc: 'ArithmeticException(0 나누기)·NullPointerException은 RuntimeException으로 처리는 선택이지만, catch해 원인을 로그로 남기면 디버깅이 쉽습니다.' },
+      { name: '사용자 입력 검증', desc: '잘못된 값을 받으면 throw new IllegalArgumentException("...")을 던져 호출한 곳이 적절히 처리하도록 합니다.' },
+      { name: 'finally로 자원(파일·연결) 정리', desc: '파일 핸들·DB 연결은 예외가 생겨도 반드시 닫아야 합니다. finally에서 close()하면 어떤 경로로 나와도 자원이 해제됩니다.' },
+      { name: '예외 메시지로 디버깅', desc: 'e.getMessage()로 원인을, e.printStackTrace()로 호출 스택을 확인해 예외가 발생한 정확한 위치를 추적합니다.' },
+    ],
+    useCaseExample: {
+      title: 'try-with-resources — 자원을 자동으로 닫는 안전한 패턴',
+      desc: 'Java 7부터 `try(자원)` 문법으로 **AutoCloseable** 자원을 선언하면 try 블록이 끝날 때 자동으로 `close()`가 호출됩니다. finally에 close()를 직접 써야 했던 번거로움이 사라집니다.',
+      code: `import java.io.*;
+
+public class SafeRead {
+    public static void main(String[] args) {
+        // try-with-resources: 블록이 끝나면 자동으로 reader.close()
+        try (BufferedReader reader =
+                 new BufferedReader(new FileReader("data.txt"))) {
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+
+        } catch (FileNotFoundException e) {
+            System.err.println("파일 없음: " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("읽기 오류: " + e.getMessage());
+            e.printStackTrace();
+        }
+        // reader.close()는 이미 자동 호출됨
+        System.out.println("정상 종료");
+    }
+}`,
+    },
   },
 
   // ── java.lang 패키지 ──────────────────────────────────────────
@@ -398,6 +534,45 @@ class Card {
     }
 }`,
     },
-    useCases: ['모든 클래스에서 toString()으로 디버깅', '문자열 동등 비교(equals)', 'HashMap의 키 — equals/hashCode', '문자열 누적 — StringBuffer/StringBuilder', '기본형 ↔ 객체 변환(Wrapper)'],
+    useCases: [
+      { name: '모든 클래스에서 toString()으로 디버깅', desc: 'System.out.println(obj)은 내부적으로 toString()을 호출합니다. 오버라이딩하면 객체 정보를 바로 출력할 수 있어 디버깅이 편해집니다.' },
+      { name: '문자열 동등 비교(equals)', desc: 'String 비교는 ==가 아니라 equals()로 해야 합니다. ==는 참조(주소)를 비교하고, equals()는 내용을 비교합니다.' },
+      { name: 'HashMap의 키 — equals/hashCode', desc: 'HashMap은 hashCode()로 버킷을 찾고 equals()로 같은 키인지 확인합니다. 두 메서드를 함께 오버라이딩하지 않으면 키 탐색이 깨집니다.' },
+      { name: '문자열 누적 — StringBuffer/StringBuilder', desc: '루프에서 String +로 이어붙이면 매번 새 객체가 생겨 비효율적입니다. StringBuffer/StringBuilder의 append()로 O(n)으로 줄입니다.' },
+      { name: '기본형 ↔ 객체 변환(Wrapper)', desc: 'Integer.parseInt()·valueOf()로 String·int를 변환하고, 오토박싱(int→Integer)·언박싱(Integer→int)으로 컬렉션에 기본형을 담습니다.' },
+    ],
+    useCaseExample: {
+      title: 'equals / hashCode 함께 오버라이딩 — HashMap 키로 올바르게 쓰기',
+      desc: '**equals만 오버라이딩**하면 hashCode 불일치로 HashMap에서 키를 찾지 못합니다. 같은 내용이면 같은 해시코드여야 한다는 계약을 지키려면 **두 메서드를 반드시 함께** 오버라이딩해야 합니다.',
+      code: `import java.util.HashMap;
+
+class Point {
+    int x, y;
+    Point(int x, int y) { this.x = x; this.y = y; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Point)) return false;
+        Point p = (Point) o;
+        return x == p.x && y == p.y;
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * x + y;  // equals가 같으면 hashCode도 같아야 함
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        HashMap<Point, String> map = new HashMap<>();
+        map.put(new Point(1, 2), "서울");
+
+        // equals+hashCode 둘 다 재정의했으므로 정상 탐색
+        System.out.println(map.get(new Point(1, 2)));  // 서울
+        // hashCode 없이 equals만 재정의하면 → null
+    }
+}`,
+    },
   },
 ]

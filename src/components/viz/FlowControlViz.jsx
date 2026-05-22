@@ -65,7 +65,7 @@ export default function FlowControlViz({ color }) {
             const on = phase === p.key
             return (
               <div key={p.key} style={{
-                padding: '6px 11px', borderRadius: 8, minWidth: 92, textAlign: 'center',
+                padding: '5px 8px', borderRadius: 8, minWidth: 70, flex: '1 1 70px', textAlign: 'center',
                 background: on ? color : '#1e293b',
                 border: `1.5px solid ${on ? color : '#334155'}`,
                 transition: 'all .2s ease',

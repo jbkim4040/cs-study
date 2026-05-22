@@ -1449,6 +1449,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
   .section-title { font-size: 1rem; }
 }
 @media (max-width: 640px) {
+  .viz-container { padding: 10px 6px; min-height: 0; }
   .ds-hero-titles { gap: 6px; }
   .ds-hero-sub { font-size: 0.82rem; }
   .concept-card { padding: 12px 13px; font-size: 0.89rem; }
@@ -1461,6 +1462,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
   .quiz-opt { padding: 9px 11px; font-size: 0.86rem; }
   .kw-pop { max-width: 200px; font-size: 0.75rem; }
   .viz-btn { padding: 7px 11px; font-size: 0.8rem; }
+  .viz-log { font-size: 0.78rem; padding: 7px 10px; }
 }
 
 /* ── 컴퓨터 네트워크 시각화 ──────────────────────────────── */

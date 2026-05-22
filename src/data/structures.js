@@ -2451,67 +2451,95 @@ print(shortest("집", "회사"), "km")   # 6 km (집→공원→사거리→회�
       { name: '기수 정렬', desc: 'O(dn), 비비교 — 정수 특화' },
     ],
     code: {
-      python: `# 버블 정렬 — 최악 O(n²), 최선 O(n)
-def bubble(arr):
-    n = len(arr)
-    for i in range(n):
-        swapped = False
-        for j in range(n-i-1):
-            if arr[j] > arr[j+1]:
-                arr[j], arr[j+1] = arr[j+1], arr[j]
-                swapped = True
-        if not swapped: break   # 교환 없으면 이미 정렬 완료
+      python: `arr = [64, 25, 12, 22, 11]   # 시각화와 동일한 배열
 
-# 합병 정렬 O(n log n)
-def merge_sort(arr):
-    if len(arr) <= 1: return arr
-    mid = len(arr) // 2
-    L, R = merge_sort(arr[:mid]), merge_sort(arr[mid:])
-    res, i, j = [], 0, 0
-    while i < len(L) and j < len(R):
-        if L[i] <= R[j]: res.append(L[i]); i += 1
-        else: res.append(R[j]); j += 1
-    return res + L[i:] + R[j:]
+def bubble(a):
+    a = a[:]
+    for i in range(len(a)):
+        for j in range(len(a)-1-i):
+            if a[j] > a[j+1]: a[j], a[j+1] = a[j+1], a[j]
+    return a
 
-# 퀵 정렬 O(n log n) 평균
-def quick_sort(arr, lo, hi):
-    if lo >= hi: return
-    pivot = arr[hi]; p = lo
-    for i in range(lo, hi):
-        if arr[i] <= pivot:
-            arr[i], arr[p] = arr[p], arr[i]; p += 1
-    arr[p], arr[hi] = arr[hi], arr[p]
-    quick_sort(arr, lo, p-1); quick_sort(arr, p+1, hi)`,
-      javascript: `// 버블 정렬 — 최악 O(n²), 최선 O(n)
-const bubble = arr => {
-  for(let i=0;i<arr.length;i++){
-    let swapped=false;
-    for(let j=0;j<arr.length-i-1;j++)
-      if(arr[j]>arr[j+1]){[arr[j],arr[j+1]]=[arr[j+1],arr[j]];swapped=true;}
-    if(!swapped)break;            // 교환 없으면 이미 정렬 완료
-  }
-};
+def selection(a):
+    a = a[:]
+    for i in range(len(a)-1):
+        m = i
+        for j in range(i+1, len(a)):
+            if a[j] < a[m]: m = j
+        a[i], a[m] = a[m], a[i]
+    return a
 
-// 합병 정렬
-function mergeSort(arr) {
-  if(arr.length<=1)return arr;
-  const mid=arr.length>>1;
-  const L=mergeSort(arr.slice(0,mid)), R=mergeSort(arr.slice(mid));
-  const res=[]; let i=0,j=0;
-  while(i<L.length&&j<R.length)
-    res.push(L[i]<=R[j]?L[i++]:R[j++]);
-  return [...res,...L.slice(i),...R.slice(j)];
+def insertion(a):
+    a = a[:]
+    for i in range(1, len(a)):
+        key = a[i]; j = i-1
+        while j >= 0 and a[j] > key:
+            a[j+1] = a[j]; j -= 1
+        a[j+1] = key
+    return a
+
+def quick(a, lo=0, hi=None):
+    if hi is None: a = a[:]; hi = len(a)-1
+    if lo >= hi: return a
+    pivot = a[hi]; p = lo
+    for k in range(lo, hi):
+        if a[k] <= pivot: a[k], a[p] = a[p], a[k]; p += 1
+    a[p], a[hi] = a[hi], a[p]
+    quick(a, lo, p-1); quick(a, p+1, hi)
+    return a
+
+print("원본:  ", arr)
+print("버블:  ", bubble(arr))
+print("선택:  ", selection(arr))
+print("삽입:  ", insertion(arr))
+q = arr[:]
+quick(q)
+print("퀵:    ", q)`,
+      javascript: `const arr = [64, 25, 12, 22, 11]; // 시각화와 동일한 배열
+
+function bubble(a) {
+  a = [...a];
+  for (let i = 0; i < a.length; i++)
+    for (let j = 0; j < a.length-1-i; j++)
+      if (a[j] > a[j+1]) [a[j],a[j+1]] = [a[j+1],a[j]];
+  return a;
 }
 
-// 퀵 정렬
-function quickSort(arr,lo=0,hi=arr.length-1){
-  if(lo>=hi)return;
-  const p=arr[hi]; let i=lo;
-  for(let j=lo;j<hi;j++)
-    if(arr[j]<=p){[arr[i],arr[j]]=[arr[j],arr[i]];i++;}
-  [arr[i],arr[hi]]=[arr[hi],arr[i]];
-  quickSort(arr,lo,i-1); quickSort(arr,i+1,hi);
-}`,
+function selection(a) {
+  a = [...a];
+  for (let i = 0; i < a.length-1; i++) {
+    let m = i;
+    for (let j = i+1; j < a.length; j++) if (a[j] < a[m]) m = j;
+    [a[i],a[m]] = [a[m],a[i]];
+  }
+  return a;
+}
+
+function insertion(a) {
+  a = [...a];
+  for (let i = 1; i < a.length; i++) {
+    const key = a[i]; let j = i-1;
+    while (j >= 0 && a[j] > key) { a[j+1] = a[j]; j--; }
+    a[j+1] = key;
+  }
+  return a;
+}
+
+function quick(a, lo=0, hi=a.length-1) {
+  if (lo >= hi) return;
+  let pivot = a[hi], p = lo;
+  for (let k = lo; k < hi; k++)
+    if (a[k] <= pivot) { [a[k],a[p]] = [a[p],a[k]]; p++; }
+  [a[p],a[hi]] = [a[hi],a[p]];
+  quick(a, lo, p-1); quick(a, p+1, hi);
+}
+
+console.log("원본:  ", arr.join(", "));
+console.log("버블:  ", bubble(arr).join(", "));
+console.log("선택:  ", selection(arr).join(", "));
+console.log("삽입:  ", insertion(arr).join(", "));
+const q = [...arr]; quick(q);
+console.log("퀵:    ", q.join(", "));`,
       java: `// 버블 정렬 — 최악 O(n²), 최선 O(n)
 static void bubble(int[] arr) {
     for (int i = 0; i < arr.length; i++) {

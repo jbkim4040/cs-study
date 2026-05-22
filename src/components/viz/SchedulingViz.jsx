@@ -72,7 +72,7 @@ function computeRR(procs, q) {
 }
 
 const PC = Object.fromEntries(PROCS.map(p => [p.id, p.color]))
-const UNIT = 32
+const UNIT = typeof window !== 'undefined' && window.innerWidth < 600 ? 16 : 32
 
 export default function SchedulingViz({ color }) {
   const [result, setResult] = useState(null)

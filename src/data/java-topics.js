@@ -97,6 +97,27 @@ for (int i = 1; i <= 10; i++) {
   3. 블록 문장 실행
   4. 증감식
         └─────────▶ 2번으로`,
+      javascript: `// for문 — 1부터 5까지의 합 (시각화와 동일한 예제)
+let sum = 0;
+for (let i = 1; i <= 5; i++) {
+  sum += i;
+  console.log("i =", i, "→ sum =", sum);
+}
+console.log("최종 합:", sum);  // 15
+
+// if-else — 점수로 학점 결정
+const score = 85;
+if (score >= 90)      console.log("A");
+else if (score >= 80) console.log("B");  // B
+else if (score >= 70) console.log("C");
+else                  console.log("F");
+
+// break / continue
+for (let i = 1; i <= 10; i++) {
+  if (i % 2 === 0) continue;  // 짝수 건너뜀
+  if (i > 7)       break;     // 7 초과 탈출
+  console.log(i);              // 1 3 5 7
+}`,
     },
     useCases: [
       { name: '점수 → 학점 변환', desc: '점수 범위별로 A·B·C·D·F 학점을 매기는 로직은 if-else if 연쇄로 자연스럽게 표현됩니다.' },
@@ -208,6 +229,26 @@ grid[1][2] = 7;
 // 배열 복사
 int[] copy = new int[nums.length];
 System.arraycopy(nums, 0, copy, 0, nums.length);`,
+      javascript: `// ① 선언 — 참조변수만 (아직 배열 없음)
+let score = null;
+console.log("선언:", score);  // null
+
+// ② 생성 — 5칸 확보, 기본값 0으로 초기화 (시각화와 동일)
+score = new Array(5).fill(0);
+console.log("생성:", score);  // [0, 0, 0, 0, 0]
+
+// ③ 값 저장 — score = [90, 85, 100, 70, 60]
+const values = [90, 85, 100, 70, 60];
+for (let k = 0; k < values.length; k++) {
+  score[k] = values[k];
+  console.log("score[" + k + "] =", score[k]);
+}
+console.log("완료:", score);
+
+// 참조형 — score에는 배열의 주소가 저장됨
+const ref = score;  // 같은 배열을 참조
+ref[0] = 100;
+console.log("ref 수정 후 score[0] =", score[0]);  // 100`,
     },
     useCases: [
       { name: '여러 학생의 점수 관리', desc: '학생 30명의 점수를 int[] 배열로 선언하면 하나의 이름으로 모든 점수를 순회하며 평균·최대·최소를 계산합니다.' },
@@ -309,6 +350,32 @@ public class Main {
         System.out.println(Car.count);   // 2 (메서드 영역의 static)
     }
 }`,
+      javascript: `// JVMMemoryViz 흐름: 클래스 로딩 → main() → new Car() → 참조변수 대입
+class Car {
+  static count = 0;  // 메서드 영역(클래스 공유)
+  constructor() {
+    Car.count++;
+    console.log("Car 생성 #" + Car.count + " — count =", Car.count);
+  }
+}
+
+function main() {
+  // 호출 스택에 c1, c2 프레임 준비
+  let c1 = null, c2 = null;
+  console.log("c1 =", c1, "  c2 =", c2);  // null null
+
+  // new Car() — 힙에 인스턴스 생성, c1에 주소 저장
+  c1 = new Car();  // count = 1
+  console.log("c1 생성, Car.count =", Car.count);
+
+  // 두 번째 인스턴스
+  c2 = new Car();  // count = 2
+  console.log("c2 생성, Car.count =", Car.count);
+
+  console.log("c1 === c2 →", c1 === c2);  // false (다른 인스턴스)
+  // main() 종료 → 스택 프레임 pop, c1·c2 스코프 해제
+}
+main();`,
     },
     useCases: [
       { name: '실세계 개체를 클래스로 모델링', desc: '자동차·은행 계좌·학생 같은 실세계 개체를 클래스로 표현하고, new로 여러 인스턴스를 만들어 독립적으로 상태를 관리합니다.' },
@@ -423,6 +490,27 @@ void check(int age) {
 void readFile() throws java.io.IOException {
     // ...
 }`,
+      javascript: `// ExceptionViz 흐름: main → method1 → method2 (throw) → 전파 → catch
+function method2() {
+  throw new Error("method2에서 예외 발생!");
+}
+
+function method1() {
+  method2();  // catch 없음 → 호출한 쪽으로 전달
+}
+
+function main() {
+  try {
+    method1();  // 호출 스택: main → method1 → method2
+  } catch (e) {
+    // main()의 catch가 예외를 잡음
+    console.log("catch:", e.message);
+  } finally {
+    console.log("finally 실행 (항상)");  // 예외와 무관하게 실행
+  }
+  console.log("프로그램 정상 종료");
+}
+main();`,
     },
     useCases: [
       { name: '파일·네트워크 입출력 오류 대비', desc: '파일이 없거나 네트워크가 끊길 수 있으므로 IOException을 catch해서 오류 메시지를 보여주거나 재시도 로직을 실행합니다.' },
@@ -533,6 +621,24 @@ class Card {
         return "kind: " + kind + ", number: " + number;
     }
 }`,
+      javascript: `// StringPoolViz와 동일 — 리터럴 공유 vs new String() 차이
+const s1 = "abc";            // 리터럴 — 상수 풀에서 공유
+const s2 = "abc";            // 같은 리터럴 → s1과 같은 참조
+const s3 = new String("abc"); // new → 힙에 별도 객체
+const s4 = new String("abc"); // 또 다른 객체 생성
+
+console.log("s1 === s2 →", s1 === s2);  // true  (같은 리터럴)
+console.log("s1 === s3 →", s1 === s3);  // false (원시형 vs 객체)
+console.log("s3 === s4 →", s3 === s4);  // false (각각 다른 객체)
+
+// equals() 역할 = 내용 비교
+console.log("s3.valueOf() === s4.valueOf() →",
+  s3.valueOf() === s4.valueOf());  // true — 내용 동일
+
+// String은 불변(immutable) — + 연산은 새 문자열 생성
+let a = "Hello";
+a = a + " World";   // 기존 "Hello" 유지, 새 문자열 생성
+console.log(a);      // Hello World`,
     },
     useCases: [
       { name: '모든 클래스에서 toString()으로 디버깅', desc: 'System.out.println(obj)은 내부적으로 toString()을 호출합니다. 오버라이딩하면 객체 정보를 바로 출력할 수 있어 디버깅이 편해집니다.' },

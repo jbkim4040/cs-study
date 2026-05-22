@@ -616,6 +616,19 @@ bool IsValid(string s) {
       { name: '괄호·태그 검사', desc: '여는 기호는 push, 닫는 기호에서 pop해 짝이 맞는지 확인합니다.' },
       { name: '후위 표기법 계산', desc: '피연산자를 쌓다가 연산자를 만나면 pop해서 계산합니다.' },
     ],
+    vizSync: {
+      bridge: 'stack',
+      syncCode: `// StackViz와 연동됩니다 — viz 객체로 시각화를 제어하세요
+await viz.reset();
+await viz.push(10);
+await viz.push(20);
+await viz.push(30);
+console.log("peek:", viz.peek());
+console.log("pop:", await viz.pop());
+console.log("pop:", await viz.pop());
+console.log("size:", viz.size());`,
+      codeLines: { reset: 2, push: 3, pop: 7, peek: 6 },
+    },
     useCaseExample: {
       title: '에디터 실행 취소 (Undo)',
       desc: '사용자가 글자를 입력할 때마다 직전 상태를 스택에 기록하고, Ctrl+Z를 누르면 가장 최근 상태를 pop해 되돌립니다.',
@@ -761,6 +774,19 @@ rear = (rear + 1) % cap;         // 0 — 배열 앞으로 순환`,
       { name: '이벤트 처리', desc: '클릭·키 입력 등 이벤트를 발생 순서대로 큐에 모아 차례로 처리합니다.' },
       { name: '네트워크 버퍼', desc: '도착한 패킷을 순서대로 큐에 담아 처리 속도 차이를 흡수합니다.' },
     ],
+    vizSync: {
+      bridge: 'queue',
+      syncCode: `// QueueViz와 연동됩니다 — viz 객체로 시각화를 제어하세요
+await viz.reset();
+await viz.enqueue(10);
+await viz.enqueue(20);
+await viz.enqueue(30);
+console.log("peek:", JSON.stringify(viz.peek()));
+console.log("dequeue:", await viz.dequeue());
+console.log("dequeue:", await viz.dequeue());
+console.log("size:", viz.size());`,
+      codeLines: { reset: 2, enqueue: 3, dequeue: 7, peek: 6 },
+    },
     useCaseExample: {
       title: '프린터 작업 대기열',
       desc: '여러 사용자가 보낸 인쇄 작업을 도착 순서대로 큐에 담고, 프린터는 앞(front)에서부터 하나씩 꺼내 출력합니다.',

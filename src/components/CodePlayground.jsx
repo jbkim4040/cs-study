@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 const PYODIDE_URL = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/'
 const STEP_DELAY  = 380   // ms per JS step
@@ -74,6 +74,90 @@ self.onmessage = function(e) {
 };
 `
 
+// Bridge code snippets — injected at worker global scope to expose a `viz` API
+const VIZ_BRIDGES = {
+  stack: `
+var __vs = [];
+var viz = {
+  push: async function(x) {
+    __vs.push(x);
+    self.postMessage({ type: 'viz-op', op: 'push', args: [x] });
+    await new Promise(function(r) { setTimeout(r, 420); });
+    return x;
+  },
+  pop: async function() {
+    var v = __vs.length > 0 ? __vs[__vs.length - 1] : undefined;
+    if (__vs.length > 0) __vs.pop();
+    self.postMessage({ type: 'viz-op', op: 'pop', args: [] });
+    await new Promise(function(r) { setTimeout(r, 420); });
+    return v;
+  },
+  peek: function() { return __vs.length > 0 ? __vs[__vs.length - 1] : undefined; },
+  size: function() { return __vs.length; },
+  isEmpty: function() { return __vs.length === 0; },
+  reset: async function() {
+    __vs = [];
+    self.postMessage({ type: 'viz-op', op: 'reset', args: [] });
+    await new Promise(function(r) { setTimeout(r, 200); });
+  }
+};`,
+  queue: `
+var __vq = [];
+var viz = {
+  enqueue: async function(x) {
+    __vq.push(x);
+    self.postMessage({ type: 'viz-op', op: 'enqueue', args: [x] });
+    await new Promise(function(r) { setTimeout(r, 420); });
+    return x;
+  },
+  dequeue: async function() {
+    var v = __vq.length > 0 ? __vq[0] : undefined;
+    if (__vq.length > 0) __vq.shift();
+    self.postMessage({ type: 'viz-op', op: 'dequeue', args: [] });
+    await new Promise(function(r) { setTimeout(r, 420); });
+    return v;
+  },
+  peek: function() { return __vq.length > 0 ? { front: __vq[0], rear: __vq[__vq.length - 1] } : null; },
+  size: function() { return __vq.length; },
+  isEmpty: function() { return __vq.length === 0; },
+  reset: async function() {
+    __vq = [];
+    self.postMessage({ type: 'viz-op', op: 'reset', args: [] });
+    await new Promise(function(r) { setTimeout(r, 200); });
+  }
+};`,
+}
+
+function buildAnimatedWorker(bridgeCode) {
+  return (bridgeCode || '') + `
+self.onmessage = async function(e) {
+  var logs = [];
+  var fmt = function(v) {
+    if (v !== null && typeof v === 'object') { try { return JSON.stringify(v); } catch (_) { return String(v); } }
+    return String(v);
+  };
+  var cons = {
+    log:   function() { logs.push([].map.call(arguments, fmt).join(' ')); },
+    error: function() { logs.push([].map.call(arguments, fmt).join(' ')); },
+    warn:  function() { logs.push([].map.call(arguments, fmt).join(' ')); },
+    info:  function() { logs.push([].map.call(arguments, fmt).join(' ')); }
+  };
+  var __step = async function(n) {
+    self.postMessage({ type: 'line', n: n });
+    await new Promise(function(r) { setTimeout(r, e.data.delay); });
+  };
+  try {
+    var fn = new Function('console', '__step',
+      '"use strict"; return (async function() {\\n' + e.data.code + '\\n})()');
+    await fn(cons, __step);
+    self.postMessage({ type: 'done', ok: true, output: logs.join('\\n') });
+  } catch (err) {
+    self.postMessage({ type: 'done', ok: false, output: logs.join('\\n'), error: String(err) });
+  }
+};
+`
+}
+
 function spawnWorker(src) {
   return new Worker(URL.createObjectURL(new Blob([src], { type: 'application/javascript' })))
 }
@@ -89,13 +173,15 @@ function runJSFast(code) {
   })
 }
 
-function runJSAnimated(code, delay, onLine) {
+function runJSAnimated(code, delay, onLine, onVizOp, bridgeCode) {
   return new Promise(resolve => {
     let w
-    try { w = spawnWorker(ANIMATED_WORKER) } catch (e) { resolve({ ok: false, output: '', error: String(e) }); return }
+    const workerSrc = bridgeCode ? buildAnimatedWorker(bridgeCode) : ANIMATED_WORKER
+    try { w = spawnWorker(workerSrc) } catch (e) { resolve({ ok: false, output: '', error: String(e) }); return }
     const t = setTimeout(() => { w.terminate(); resolve({ ok: false, output: '', error: '시간 초과 (20초)' }) }, 20000)
     w.onmessage = ev => {
       if (ev.data.type === 'line') { onLine(ev.data.n); return }
+      if (ev.data.type === 'viz-op') { onVizOp?.(ev.data.op, ev.data.args); return }
       clearTimeout(t); w.terminate(); resolve(ev.data)
     }
     w.onerror = ev => { clearTimeout(t); w.terminate(); resolve({ ok: false, output: '', error: String(ev.message) }) }
@@ -103,7 +189,7 @@ function runJSAnimated(code, delay, onLine) {
   })
 }
 
-export default function CodePlayground({ starterCode, starterLang, color }) {
+export default function CodePlayground({ starterCode, starterLang, color, vizBridge, onVizOp, externalHlLine }) {
   const initLang = starterLang === 'python' ? 'python' : 'javascript'
   const [lang, setLang]       = useState(initLang)
   const [code, setCode]       = useState(starterCode || STARTERS[initLang])
@@ -112,7 +198,15 @@ export default function CodePlayground({ starterCode, starterLang, color }) {
   const [running, setRunning] = useState(false)
   const [hlLine, setHlLine]   = useState(null)
   const [stepMode, setStepMode] = useState(true)
+  const [fromVizHl, setFromVizHl] = useState(null)
   const pyRef = useRef(null)
+
+  useEffect(() => {
+    if (!externalHlLine) return
+    setFromVizHl(externalHlLine)
+    const t = setTimeout(() => setFromVizHl(null), 1200)
+    return () => clearTimeout(t)
+  }, [externalHlLine])
 
   async function ensurePyodide() {
     if (pyRef.current) return pyRef.current
@@ -140,8 +234,8 @@ export default function CodePlayground({ starterCode, starterLang, color }) {
     setRunning(true); setStatus('running'); setOutput('실행 중…'); setHlLine(null)
 
     let result
-    if (stepMode && lang === 'javascript') {
-      result = await runJSAnimated(code, STEP_DELAY, n => setHlLine(n))
+    if ((stepMode || vizBridge) && lang === 'javascript') {
+      result = await runJSAnimated(code, STEP_DELAY, n => setHlLine(n), onVizOp, vizBridge ? VIZ_BRIDGES[vizBridge] : null)
     } else if (lang === 'python') {
       result = await runPython(code)
     } else {
@@ -208,14 +302,14 @@ export default function CodePlayground({ starterCode, starterLang, color }) {
       <div className="pg-code-wrap">
         <div className="pg-gutter" aria-hidden="true">
           {lines.map((_, i) => (
-            <div key={i} className={'pg-ln' + (hlLine === i + 1 ? ' hl' : '')}>{i + 1}</div>
+            <div key={i} className={'pg-ln' + (hlLine === i + 1 ? ' hl' : '') + (fromVizHl === i + 1 ? ' viz-hl' : '')}>{i + 1}</div>
           ))}
         </div>
 
         {showExecView ? (
           <pre className="pg-exec-view">
             {lines.map((ln, i) => (
-              <div key={i} className={'pg-exec-ln' + (hlLine === i + 1 ? ' hl' : '')}>
+              <div key={i} className={'pg-exec-ln' + (hlLine === i + 1 ? ' hl' : '') + (fromVizHl === i + 1 ? ' viz-hl' : '')}>
                 {ln || ' '}
               </div>
             ))}

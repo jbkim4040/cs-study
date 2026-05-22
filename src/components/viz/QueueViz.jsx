@@ -1,48 +1,83 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const INIT = [10, 20, 30]
 
-export default function QueueViz({ color }) {
+export default function QueueViz({ color, pendingOp, onAction }) {
   const [queue, setQueue] = useState(INIT)
   const [inputVal, setInputVal] = useState('40')
   const [log, setLog] = useState('enqueue/dequeue를 눌러 큐 연산을 체험해 보세요.')
   const [entering, setEntering] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const queueRef = useRef(INIT)
 
-  function enqueue() {
-    const val = parseInt(inputVal)
-    if (isNaN(val)) { setLog('⚠️ 숫자를 입력하세요.'); return }
+  // --- internal animation helpers (no onAction) ---
+  function enqueueExt(val) {
     setEntering(true)
     setTimeout(() => {
-      setQueue(q => [...q, val])
+      setQueue(q => { const nq = [...q, val]; queueRef.current = nq; return nq })
       setEntering(false)
       setLog(`enqueue(${val}) — rear(뒤)에 ${val} 추가 완료! O(1)`)
     }, 350)
   }
 
-  function dequeue() {
-    if (queue.length === 0) {
-      setLog('⚠️ 큐가 비어 있습니다.')
-      return
-    }
-    const front = queue[0]
+  function dequeueExt() {
+    const cur = queueRef.current
+    if (cur.length === 0) return
+    const front = cur[0]
     setLeaving(true)
     setTimeout(() => {
-      setQueue(q => q.slice(1))
+      setQueue(q => { const nq = q.slice(1); queueRef.current = nq; return nq })
       setLeaving(false)
       setLog(`dequeue() = ${front} — front(앞)에서 ${front} 제거 완료! O(1)`)
     }, 350)
   }
 
+  function peekExt() {
+    const cur = queueRef.current
+    if (cur.length === 0) return
+    setLog(`front = ${cur[0]}, rear = ${cur[cur.length - 1]} — 양 끝 확인 O(1)`)
+  }
+
+  // --- user-facing button handlers (fire onAction) ---
+  function enqueue() {
+    const val = parseInt(inputVal)
+    if (isNaN(val)) { setLog('⚠️ 숫자를 입력하세요.'); return }
+    onAction?.('enqueue')
+    enqueueExt(val)
+  }
+
+  function dequeue() {
+    if (queueRef.current.length === 0) {
+      setLog('⚠️ 큐가 비어 있습니다.')
+      return
+    }
+    onAction?.('dequeue')
+    dequeueExt()
+  }
+
   function peek() {
-    if (queue.length === 0) { setLog('⚠️ 큐가 비어 있습니다.'); return }
-    setLog(`front = ${queue[0]}, rear = ${queue[queue.length - 1]} — 양 끝 확인 O(1)`)
+    if (queueRef.current.length === 0) { setLog('⚠️ 큐가 비어 있습니다.'); return }
+    onAction?.('peek')
+    peekExt()
   }
 
   function reset() {
+    queueRef.current = INIT
     setQueue(INIT)
+    setEntering(false)
+    setLeaving(false)
     setLog('enqueue/dequeue를 눌러 큐 연산을 체험해 보세요.')
   }
+
+  // --- respond to code-driven operations ---
+  useEffect(() => {
+    if (!pendingOp) return
+    const { op, args } = pendingOp
+    if (op === 'enqueue') enqueueExt(args[0])
+    else if (op === 'dequeue') dequeueExt()
+    else if (op === 'peek') peekExt()
+    else if (op === 'reset') reset()
+  }, [pendingOp]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="viz">

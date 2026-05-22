@@ -1,48 +1,83 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const INIT = [10, 20, 30]
 
-export default function StackViz({ color }) {
+export default function StackViz({ color, pendingOp, onAction }) {
   const [stack, setStack] = useState(INIT)
   const [inputVal, setInputVal] = useState('40')
   const [log, setLog] = useState('push/pop을 눌러 스택 연산을 체험해 보세요.')
   const [newItem, setNewItem] = useState(null)
   const [poppingIdx, setPoppingIdx] = useState(null)
+  const stackRef = useRef(INIT)
 
-  function push() {
-    const val = parseInt(inputVal)
-    if (isNaN(val)) { setLog('⚠️ 숫자를 입력하세요.'); return }
+  // --- internal animation helpers (no onAction) ---
+  function pushExt(val) {
     setNewItem(val)
     setTimeout(() => {
-      setStack(s => [...s, val])
+      setStack(s => { const ns = [...s, val]; stackRef.current = ns; return ns })
       setNewItem(null)
       setLog(`push(${val}) — 꼭대기에 ${val} 추가 완료! O(1)`)
     }, 350)
   }
 
-  function pop() {
-    if (stack.length === 0) {
-      setLog('⚠️ Stack Underflow — 스택이 비어 있습니다.')
-      return
-    }
-    const top = stack[stack.length - 1]
-    setPoppingIdx(stack.length - 1)
+  function popExt() {
+    const cur = stackRef.current
+    if (cur.length === 0) return
+    const top = cur[cur.length - 1]
+    setPoppingIdx(cur.length - 1)
     setTimeout(() => {
-      setStack(s => s.slice(0, -1))
+      setStack(s => { const ns = s.slice(0, -1); stackRef.current = ns; return ns })
       setPoppingIdx(null)
       setLog(`pop() = ${top} — 꼭대기에서 ${top} 제거 완료! O(1)`)
     }, 350)
   }
 
+  function peekExt() {
+    const cur = stackRef.current
+    if (cur.length === 0) return
+    setLog(`peek() = ${cur[cur.length - 1]} — 꼭대기 값 확인 (제거 없음) O(1)`)
+  }
+
+  // --- user-facing button handlers (fire onAction) ---
+  function push() {
+    const val = parseInt(inputVal)
+    if (isNaN(val)) { setLog('⚠️ 숫자를 입력하세요.'); return }
+    onAction?.('push')
+    pushExt(val)
+  }
+
+  function pop() {
+    if (stackRef.current.length === 0) {
+      setLog('⚠️ Stack Underflow — 스택이 비어 있습니다.')
+      return
+    }
+    onAction?.('pop')
+    popExt()
+  }
+
   function peek() {
-    if (stack.length === 0) { setLog('⚠️ 스택이 비어 있습니다.'); return }
-    setLog(`peek() = ${stack[stack.length - 1]} — 꼭대기 값 확인 (제거 없음) O(1)`)
+    if (stackRef.current.length === 0) { setLog('⚠️ 스택이 비어 있습니다.'); return }
+    onAction?.('peek')
+    peekExt()
   }
 
   function reset() {
+    stackRef.current = INIT
     setStack(INIT)
+    setNewItem(null)
+    setPoppingIdx(null)
     setLog('push/pop을 눌러 스택 연산을 체험해 보세요.')
   }
+
+  // --- respond to code-driven operations ---
+  useEffect(() => {
+    if (!pendingOp) return
+    const { op, args } = pendingOp
+    if (op === 'push') pushExt(args[0])
+    else if (op === 'pop') popExt()
+    else if (op === 'peek') peekExt()
+    else if (op === 'reset') reset()
+  }, [pendingOp]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const items = [...stack].reverse()
 

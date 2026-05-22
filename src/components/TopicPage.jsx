@@ -67,6 +67,17 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
   const [codeLang, setCodeLang] = useState(codeLangs[0])
   const [copied, setCopied] = useState(false)
   const [activeSec, setActiveSec] = useState('concept')
+  const [vizPendingOp, setVizPendingOp] = useState(null)
+  const [vizActionLine, setVizActionLine] = useState(null)
+
+  function handleVizOp(op, args) {
+    setVizPendingOp({ op, args })
+  }
+
+  function handleVizAction(op) {
+    const line = topic.vizSync?.codeLines?.[op]
+    if (line) setVizActionLine(line)
+  }
   const navRef = useRef(null)
 
   const glossary = useMemo(
@@ -325,14 +336,29 @@ export default function TopicPage({ id, markVisited, recordScore, glossaryOn, on
             <div className="viz-container" style={{ '--color': topic.color }}>
               {Viz && (
                 <Suspense fallback={<div className="viz-loading">시각화를 불러오는 중…</div>}>
-                  <Viz color={topic.color} />
+                  <Viz
+                    color={topic.color}
+                    pendingOp={topic.vizSync ? vizPendingOp : undefined}
+                    onAction={topic.vizSync ? handleVizAction : undefined}
+                  />
                 </Suspense>
               )}
             </div>
-            {pgStarter ? (
+            {(topic.vizSync?.syncCode || pgStarter) ? (
               <div className="viz-playground-wrap">
-                <div className="viz-playground-head">코드로 직접 실행해 보기 — 위 시각화의 동작을 코드로 체험하세요</div>
-                <CodePlayground starterLang={pgLang} starterCode={pgStarter} color={topic.color} />
+                <div className="viz-playground-head">
+                  {topic.vizSync
+                    ? '▶ 실행하면 위 시각화와 함께 동작합니다 — 버튼을 눌러도 코드 줄이 주황색으로 표시됩니다'
+                    : '코드로 직접 실행해 보기 — 위 시각화의 동작을 코드로 체험하세요'}
+                </div>
+                <CodePlayground
+                  starterLang={pgLang}
+                  starterCode={topic.vizSync?.syncCode || pgStarter}
+                  color={topic.color}
+                  vizBridge={topic.vizSync?.bridge}
+                  onVizOp={topic.vizSync ? handleVizOp : undefined}
+                  externalHlLine={topic.vizSync ? vizActionLine : undefined}
+                />
               </div>
             ) : codeLangs.length > 0 && (
               <div className="viz-code">

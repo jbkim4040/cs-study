@@ -83,6 +83,44 @@ const d = JSON.parse(JSON.stringify(a)); // 깊은 복사
 // C 스타일 포인터 의사 표현
 // C: int x = 10; int *p = &x; *p = 20;
 // → x는 이제 20`,
+      java: `// Java: 명시적 포인터 없음 — 객체는 모두 참조(reference)
+int[] a = {1, 2, 3};
+int[] b = a;              // b는 a와 같은 배열을 참조
+b[0] = 99;
+System.out.println(a[0]); // 99 — 같은 객체!
+System.out.println(a == b);       // true (참조 동일)
+
+int[] c = a.clone();      // 독립 복사
+System.out.println(a == c);       // false
+
+int[] d = null;           // null — 아무것도 가리키지 않음
+// d[0] 접근 시 → NullPointerException`,
+      cpp: `#include <iostream>
+int main() {
+    int x = 10;
+    int* p = &x;          // p는 x의 주소를 담음
+    std::cout << *p;      // 10 — 역참조(dereference)
+    *p = 20;              // p가 가리키는 곳에 저장
+    std::cout << x;       // 20 — x가 바뀜
+
+    int* np = nullptr;    // NULL 포인터
+    // *np 접근 시 → 세그멘테이션 오류
+
+    int arr[3] = {1, 2, 3};
+    std::cout << *(arr + 2);  // 3 — 포인터 산술
+}`,
+      csharp: `// C#: 참조 타입(배열·객체)은 참조로 전달
+int[] a = { 1, 2, 3 };
+int[] b = a;                       // 같은 배열 참조
+b[0] = 99;
+Console.WriteLine(a[0]);                  // 99
+Console.WriteLine(ReferenceEquals(a, b)); // True
+
+// ref 키워드 — 값 타입을 참조로 전달
+void AddOne(ref int n) => n++;
+int x = 10;
+AddOne(ref x);
+Console.WriteLine(x);              // 11`,
     },
     useCases: ['연결 리스트 · 트리 · 그래프 노드 연결', 'C/C++ 동적 메모리 할당', '함수 인자 참조 전달', '운영체제 커널 · 드라이버'],
   },
@@ -180,6 +218,42 @@ lst.push(50);
 // O(n) 탐색
 console.log(lst.includes(30)); // true
 console.log(lst.indexOf(30));  // 2`,
+      java: `import java.util.ArrayList;
+import java.util.List;
+
+ArrayList<Integer> lst = new ArrayList<>(List.of(10, 20, 30, 40));
+
+System.out.println(lst.get(2));   // O(1) 접근 → 30
+lst.add(2, 99);                   // O(n) 중간 삽입 → [10,20,99,30,40]
+lst.remove(2);                    // O(n) 중간 삭제 → [10,20,30,40]
+lst.add(50);                      // O(1) 끝 추가 (amortized)
+
+System.out.println(lst.contains(30));  // O(n) 탐색 → true
+System.out.println(lst.indexOf(30));   // 2`,
+      cpp: `#include <vector>
+#include <algorithm>
+#include <iostream>
+
+int main() {
+    std::vector<int> lst = {10, 20, 30, 40};
+
+    std::cout << lst[2];                  // O(1) 접근 → 30
+    lst.insert(lst.begin() + 2, 99);      // O(n) 중간 삽입
+    lst.erase(lst.begin() + 2);           // O(n) 중간 삭제
+    lst.push_back(50);                    // O(1) 끝 추가
+
+    auto it = std::find(lst.begin(), lst.end(), 30);  // O(n) 탐색
+    std::cout << (it != lst.end());       // 1 (찾음)
+}`,
+      csharp: `var lst = new List<int> { 10, 20, 30, 40 };
+
+Console.WriteLine(lst[2]);     // O(1) 접근 → 30
+lst.Insert(2, 99);             // O(n) 중간 삽입 → [10,20,99,30,40]
+lst.RemoveAt(2);               // O(n) 중간 삭제 → [10,20,30,40]
+lst.Add(50);                   // O(1) 끝 추가 (amortized)
+
+Console.WriteLine(lst.Contains(30));  // O(n) 탐색 → True
+Console.WriteLine(lst.IndexOf(30));   // 2`,
     },
     useCases: ['Python list, Java ArrayList, JS Array', '순서 있는 데이터 관리', '스택·큐·덱의 기반', '알고리즘 입출력 버퍼'],
   },
@@ -279,6 +353,40 @@ arr.push(56);
 // 2차원 배열
 const m = [[1,2,3],[4,5,6],[7,8,9]];
 console.log(m[1][2]); // 6`,
+      java: `int[] arr = {15, 42, 8, 73, 21};
+
+System.out.println(arr[2]);       // O(1) 인덱스 접근 → 8
+System.out.println(arr.length);   // 5
+
+boolean found = false;            // O(n) 탐색
+for (int v : arr) if (v == 73) found = true;
+System.out.println(found);        // true
+
+// 2차원 배열
+int[][] m = {{1,2,3}, {4,5,6}, {7,8,9}};
+System.out.println(m[1][2]);      // 6`,
+      cpp: `#include <iostream>
+int main() {
+    int arr[5] = {15, 42, 8, 73, 21};
+
+    std::cout << arr[2];       // O(1) 인덱스 접근 → 8
+    std::cout << *(arr + 3);   // 73 — 주소 = base + i*sizeof(int)
+
+    bool found = false;        // O(n) 탐색
+    for (int v : arr) if (v == 73) found = true;
+
+    int m[3][3] = {{1,2,3}, {4,5,6}, {7,8,9}};
+    std::cout << m[1][2];      // 6
+}`,
+      csharp: `int[] arr = { 15, 42, 8, 73, 21 };
+
+Console.WriteLine(arr[2]);                  // O(1) 인덱스 접근 → 8
+Console.WriteLine(arr.Length);              // 5
+Console.WriteLine(Array.IndexOf(arr, 73));  // O(n) 탐색 → 3
+
+// 다차원 배열
+int[,] m = { {1,2,3}, {4,5,6}, {7,8,9} };
+Console.WriteLine(m[1, 2]);                 // 6`,
     },
     useCases: ['이미지 픽셀 버퍼', '행렬·벡터 연산', '정렬 알고리즘 기반', '해시 테이블 버킷'],
   },
@@ -369,6 +477,73 @@ function isValid(s) {
   }
   return st.length === 0;
 }`,
+      java: `import java.util.ArrayDeque;
+import java.util.Deque;
+
+Deque<Integer> stack = new ArrayDeque<>();
+stack.push(10); stack.push(20); stack.push(30);  // top → 30
+
+System.out.println(stack.peek());  // 30 (제거 없음)
+System.out.println(stack.pop());   // 30
+
+// 괄호 유효성 검사
+static boolean isValid(String s) {
+    Deque<Character> st = new ArrayDeque<>();
+    for (char c : s.toCharArray()) {
+        if (c=='('||c=='['||c=='{') st.push(c);
+        else {
+            if (st.isEmpty()) return false;
+            char o = st.pop();
+            if ((c==')'&&o!='(')||(c==']'&&o!='[')||(c=='}'&&o!='{'))
+                return false;
+        }
+    }
+    return st.isEmpty();
+}`,
+      cpp: `#include <stack>
+#include <string>
+#include <iostream>
+
+// 괄호 유효성 검사
+bool isValid(const std::string& s) {
+    std::stack<char> st;
+    for (char c : s) {
+        if (c=='('||c=='['||c=='{') st.push(c);
+        else {
+            if (st.empty()) return false;
+            char o = st.top(); st.pop();
+            if ((c==')'&&o!='(')||(c==']'&&o!='[')||(c=='}'&&o!='{'))
+                return false;
+        }
+    }
+    return st.empty();
+}
+
+int main() {
+    std::stack<int> st;
+    st.push(10); st.push(20); st.push(30);  // top → 30
+    std::cout << st.top();          // 30 (peek)
+    st.pop();                       // 30 제거
+    std::cout << isValid("({[]})"); // 1
+}`,
+      csharp: `var stack = new Stack<int>();
+stack.Push(10); stack.Push(20); stack.Push(30);  // top → 30
+
+Console.WriteLine(stack.Peek());  // 30 (제거 없음)
+Console.WriteLine(stack.Pop());   // 30
+
+// 괄호 유효성 검사
+bool IsValid(string s) {
+    var st = new Stack<char>();
+    var match = new Dictionary<char,char> { [')']='(', [']']='[', ['}']='{' };
+    foreach (char c in s) {
+        if (c=='('||c=='['||c=='{') st.Push(c);
+        else if (match.ContainsKey(c)) {
+            if (st.Count==0 || st.Pop()!=match[c]) return false;
+        }
+    }
+    return st.Count == 0;
+}`,
     },
     useCases: ['함수 호출 스택', '실행 취소(Undo)', 'DFS', '괄호 검사', '후위 표기법'],
   },
@@ -451,6 +626,42 @@ const q = new Queue();
 q.enqueue(10); q.enqueue(20); q.enqueue(30);
 console.log(q.dequeue()); // 10
 console.log(q.peek());    // 20`,
+      java: `import java.util.LinkedList;
+import java.util.Queue;
+
+Queue<Integer> q = new LinkedList<>();
+q.offer(10); q.offer(20); q.offer(30);  // front: 10
+
+System.out.println(q.peek());  // 10 (제거 없음)
+System.out.println(q.poll());  // dequeue → 10
+
+// 원형 큐 핵심: (idx + 1) % capacity 로 공간 재사용
+int cap = 5, rear = 4;
+rear = (rear + 1) % cap;       // 0 — 배열 앞으로 순환`,
+      cpp: `#include <queue>
+#include <iostream>
+
+int main() {
+    std::queue<int> q;
+    q.push(10); q.push(20); q.push(30);  // front: 10
+
+    std::cout << q.front();  // 10 (peek)
+    q.pop();                 // dequeue → 10
+
+    // 원형 큐 핵심: (idx + 1) % capacity 로 공간 재사용
+    int cap = 5, rear = 4;
+    rear = (rear + 1) % cap; // 0 — 배열 앞으로 순환
+    std::cout << rear;
+}`,
+      csharp: `var q = new Queue<int>();
+q.Enqueue(10); q.Enqueue(20); q.Enqueue(30);  // front: 10
+
+Console.WriteLine(q.Peek());     // 10 (제거 없음)
+Console.WriteLine(q.Dequeue());  // dequeue → 10
+
+// 원형 큐 핵심: (idx + 1) % capacity 로 공간 재사용
+int cap = 5, rear = 4;
+rear = (rear + 1) % cap;         // 0 — 배열 앞으로 순환`,
     },
     useCases: ['BFS', '프린터 인쇄 큐', 'CPU 스케줄링', '이벤트 처리', '네트워크 버퍼'],
   },
@@ -546,6 +757,76 @@ class LinkedList {
   deleteHead(){           // O(1)
     if(this.head)this.head=this.head.next;
   }
+}`,
+      java: `class Node {
+    int data; Node next;
+    Node(int d) { data = d; }
+}
+
+class LinkedList {
+    Node head;
+
+    void prepend(int data) {     // O(1)
+        Node n = new Node(data);
+        n.next = head; head = n;
+    }
+    void append(int data) {      // O(n)
+        Node n = new Node(data);
+        if (head == null) { head = n; return; }
+        Node cur = head;
+        while (cur.next != null) cur = cur.next;
+        cur.next = n;
+    }
+    void deleteHead() {          // O(1)
+        if (head != null) head = head.next;
+    }
+}`,
+      cpp: `struct Node {
+    int data;
+    Node* next = nullptr;
+    Node(int d) : data(d) {}
+};
+
+class LinkedList {
+    Node* head = nullptr;
+public:
+    void prepend(int data) {     // O(1)
+        Node* n = new Node(data);
+        n->next = head; head = n;
+    }
+    void append(int data) {      // O(n)
+        Node* n = new Node(data);
+        if (!head) { head = n; return; }
+        Node* cur = head;
+        while (cur->next) cur = cur->next;
+        cur->next = n;
+    }
+    void deleteHead() {          // O(1)
+        if (head) { Node* old = head; head = head->next; delete old; }
+    }
+};`,
+      csharp: `class Node {
+    public int Data;
+    public Node Next;
+    public Node(int d) => Data = d;
+}
+
+class LinkedList {
+    Node head;
+
+    public void Prepend(int data) {   // O(1)
+        head = new Node(data) { Next = head };
+    }
+    public void Append(int data) {    // O(n)
+        var n = new Node(data);
+        if (head == null) { head = n; return; }
+        var cur = head;
+        while (cur.Next != null) cur = cur.Next;
+        cur.Next = n;
+    }
+    public void DeleteHead() {        // O(1)
+        if (head != null) head = head.Next;
+    }
 }`,
     },
     useCases: ['스택·큐 내부 구현', 'LRU 캐시(양방향)', '파일 시스템 디렉터리', '다항식 연산'],
@@ -646,6 +927,75 @@ function hasCycle(head) {
   }
   return false;
 }`,
+      java: `class Node {
+    int data; Node next;
+    Node(int d) { data = d; }
+}
+
+// Floyd 사이클 감지 — 느린·빠른 포인터
+static boolean hasCycle(Node head) {
+    Node slow = head, fast = head;
+    while (fast != null && fast.next != null) {
+        slow = slow.next;
+        fast = fast.next.next;
+        if (slow == fast) return true;
+    }
+    return false;
+}
+
+// 순환 리스트 생성: n1 → n2 → n3 → n1
+Node n1 = new Node(10), n2 = new Node(20), n3 = new Node(30);
+n1.next = n2; n2.next = n3; n3.next = n1;  // 순환!
+System.out.println(hasCycle(n1));          // true`,
+      cpp: `#include <iostream>
+
+struct Node {
+    int data;
+    Node* next = nullptr;
+    Node(int d) : data(d) {}
+};
+
+// Floyd 사이클 감지 — 느린·빠른 포인터
+bool hasCycle(Node* head) {
+    Node *slow = head, *fast = head;
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+        if (slow == fast) return true;
+    }
+    return false;
+}
+
+int main() {
+    Node* n1 = new Node(10);
+    Node* n2 = new Node(20);
+    Node* n3 = new Node(30);
+    n1->next = n2; n2->next = n3; n3->next = n1;  // 순환!
+    std::cout << hasCycle(n1);  // 1
+}`,
+      csharp: `class Node {
+    public int Data;
+    public Node Next;
+    public Node(int d) => Data = d;
+}
+
+// Floyd 사이클 감지 — 느린·빠른 포인터
+bool HasCycle(Node head) {
+    Node slow = head, fast = head;
+    while (fast != null && fast.Next != null) {
+        slow = slow.Next;
+        fast = fast.Next.Next;
+        if (slow == fast) return true;
+    }
+    return false;
+}
+
+// 순환 리스트 생성: n1 → n2 → n3 → n1
+var n1 = new Node(10);
+var n2 = new Node(20);
+var n3 = new Node(30);
+n1.Next = n2; n2.Next = n3; n3.Next = n1;  // 순환!
+Console.WriteLine(HasCycle(n1));           // True`,
     },
     useCases: ['라운드로빈 CPU 스케줄러', '원형 버퍼(Ring Buffer)', '멀티플레이어 게임 순번', '뮤직 플레이어 반복 재생'],
   },
@@ -770,6 +1120,86 @@ function levelOrder(root) {
     if (n.left)  q.push(n.left);
     if (n.right) q.push(n.right);
   }
+}`,
+      java: `import java.util.LinkedList;
+import java.util.Queue;
+
+class Node {
+    int val; Node left, right;
+    Node(int v) { val = v; }
+}
+
+// 전위 순회: 루트 → 왼 → 오
+static void preorder(Node n) {
+    if (n == null) return;
+    System.out.print(n.val + " ");   // 1 2 4 5 3
+    preorder(n.left);
+    preorder(n.right);
+}
+
+// 레벨 순서 순회 (BFS)
+static void levelOrder(Node root) {
+    Queue<Node> q = new LinkedList<>();
+    q.offer(root);
+    while (!q.isEmpty()) {
+        Node n = q.poll();
+        System.out.print(n.val + " ");
+        if (n.left != null)  q.offer(n.left);
+        if (n.right != null) q.offer(n.right);
+    }
+}`,
+      cpp: `#include <queue>
+#include <iostream>
+
+struct Node {
+    int val;
+    Node *left = nullptr, *right = nullptr;
+    Node(int v) : val(v) {}
+};
+
+// 전위 순회: 루트 → 왼 → 오
+void preorder(Node* n) {
+    if (!n) return;
+    std::cout << n->val << ' ';   // 1 2 4 5 3
+    preorder(n->left);
+    preorder(n->right);
+}
+
+// 레벨 순서 순회 (BFS)
+void levelOrder(Node* root) {
+    std::queue<Node*> q;
+    q.push(root);
+    while (!q.empty()) {
+        Node* n = q.front(); q.pop();
+        std::cout << n->val << ' ';
+        if (n->left)  q.push(n->left);
+        if (n->right) q.push(n->right);
+    }
+}`,
+      csharp: `class Node {
+    public int Val;
+    public Node Left, Right;
+    public Node(int v) => Val = v;
+}
+
+// 전위 순회: 루트 → 왼 → 오
+void Preorder(Node n) {
+    if (n == null) return;
+    Console.Write(n.Val + " ");   // 1 2 4 5 3
+    Preorder(n.Left);
+    Preorder(n.Right);
+}
+
+// 레벨 순서 순회 (BFS)
+void LevelOrder(Node root) {
+    var q = new Queue<Node>();
+    q.Enqueue(root);
+    while (q.Count > 0) {
+        var n = q.Dequeue();
+        Console.Write(n.Val + " ");
+        if (n.Left != null)  q.Enqueue(n.Left);
+        if (n.Right != null) q.Enqueue(n.Right);
+    }
 }`,
     },
     useCases: ['파일 시스템 디렉터리', 'HTML DOM 트리', '컴파일러 파싱 트리', '조직도 · 계층 데이터'],
@@ -900,6 +1330,94 @@ function insert(node, val){     // AVL 삽입 = BST 삽입 + 재균형
     node.right = rotateRight(node.right); return rotateLeft(node); }
   return node;
 }`,
+      java: `class Node {
+    int val; Node left, right;
+    Node(int v) { val = v; }
+}
+
+// BST 삽입 — 왼쪽 < 부모 < 오른쪽 규칙 유지
+static Node insert(Node node, int val) {
+    if (node == null) return new Node(val);
+    if (val < node.val)      node.left  = insert(node.left, val);
+    else if (val > node.val) node.right = insert(node.right, val);
+    return node;
+}
+
+// BST 탐색 — 평균 O(log n)
+static boolean search(Node node, int val) {
+    if (node == null) return false;
+    if (val == node.val) return true;
+    return val < node.val ? search(node.left, val)
+                          : search(node.right, val);
+}
+
+// 중위 순회 → 오름차순 정렬
+static void inorder(Node n) {
+    if (n == null) return;
+    inorder(n.left);
+    System.out.print(n.val + " ");
+    inorder(n.right);
+}`,
+      cpp: `#include <iostream>
+
+struct Node {
+    int val;
+    Node *left = nullptr, *right = nullptr;
+    Node(int v) : val(v) {}
+};
+
+// BST 삽입 — 왼쪽 < 부모 < 오른쪽 규칙 유지
+Node* insert(Node* node, int val) {
+    if (!node) return new Node(val);
+    if (val < node->val)      node->left  = insert(node->left, val);
+    else if (val > node->val) node->right = insert(node->right, val);
+    return node;
+}
+
+// BST 탐색 — 평균 O(log n)
+bool search(Node* node, int val) {
+    if (!node) return false;
+    if (val == node->val) return true;
+    return val < node->val ? search(node->left, val)
+                           : search(node->right, val);
+}
+
+// 중위 순회 → 오름차순 정렬
+void inorder(Node* n) {
+    if (!n) return;
+    inorder(n->left);
+    std::cout << n->val << ' ';
+    inorder(n->right);
+}`,
+      csharp: `class Node {
+    public int Val;
+    public Node Left, Right;
+    public Node(int v) => Val = v;
+}
+
+// BST 삽입 — 왼쪽 < 부모 < 오른쪽 규칙 유지
+Node Insert(Node node, int val) {
+    if (node == null) return new Node(val);
+    if (val < node.Val)      node.Left  = Insert(node.Left, val);
+    else if (val > node.Val) node.Right = Insert(node.Right, val);
+    return node;
+}
+
+// BST 탐색 — 평균 O(log n)
+bool Search(Node node, int val) {
+    if (node == null) return false;
+    if (val == node.Val) return true;
+    return val < node.Val ? Search(node.Left, val)
+                          : Search(node.Right, val);
+}
+
+// 중위 순회 → 오름차순 정렬
+void Inorder(Node n) {
+    if (n == null) return;
+    Inorder(n.Left);
+    Console.Write(n.Val + " ");
+    Inorder(n.Right);
+}`,
     },
     useCases: ['DB 인덱스(B-Tree)', '순서 있는 집합·맵', '범위 질의', '파일 시스템'],
   },
@@ -999,6 +1517,46 @@ class MinHeap {
   }
   peek() { return this.#h[1]; }
 }`,
+      java: `import java.util.Collections;
+import java.util.PriorityQueue;
+
+// Min-Heap (기본) — 루트가 최솟값
+PriorityQueue<Integer> pq = new PriorityQueue<>();
+pq.offer(30); pq.offer(10); pq.offer(50); pq.offer(20);
+
+System.out.println(pq.peek());  // 10 (최솟값)
+System.out.println(pq.poll());  // 10 — extractMin (heapify-down)
+System.out.println(pq.poll());  // 20
+
+// Max-Heap — reverseOrder 비교자
+PriorityQueue<Integer> maxPq = new PriorityQueue<>(Collections.reverseOrder());
+maxPq.offer(30); maxPq.offer(50); maxPq.offer(10);
+System.out.println(maxPq.peek());  // 50`,
+      cpp: `#include <queue>
+#include <vector>
+#include <iostream>
+
+int main() {
+    // Max-Heap (기본) — 루트가 최댓값
+    std::priority_queue<int> maxHeap;
+    maxHeap.push(30); maxHeap.push(10); maxHeap.push(50);
+    std::cout << maxHeap.top();  // 50 (최댓값)
+    maxHeap.pop();
+
+    // Min-Heap — greater 비교자 지정
+    std::priority_queue<int, std::vector<int>, std::greater<int>> minHeap;
+    minHeap.push(30); minHeap.push(10); minHeap.push(50);
+    std::cout << minHeap.top();  // 10 (최솟값)
+}`,
+      csharp: `// .NET 6+ PriorityQueue<TElement, TPriority> — Min-Heap
+var pq = new PriorityQueue<string, int>();
+pq.Enqueue("작업 A", 30);
+pq.Enqueue("작업 B", 10);   // 우선순위 10 → 가장 먼저
+pq.Enqueue("작업 C", 50);
+
+Console.WriteLine(pq.Peek());     // 작업 B (제거 없음)
+Console.WriteLine(pq.Dequeue());  // 작업 B — 최소 우선순위
+Console.WriteLine(pq.Dequeue());  // 작업 A`,
     },
     useCases: ['다익스트라 최단 경로', '힙 정렬', '작업 스케줄링', 'A* 탐색', '중앙값 유지'],
   },
@@ -1078,6 +1636,53 @@ map.set('alice', 95); map.set('bob', 87);
 console.log(map.get('alice')); // 95
 console.log(map.has('bob'));   // true
 map.delete('bob');`,
+      java: `import java.util.HashMap;
+
+HashMap<String,Integer> map = new HashMap<>();
+map.put("alice", 95); map.put("bob", 87); map.put("carol", 92);
+
+System.out.println(map.get("alice"));        // 95
+System.out.println(map.containsKey("bob"));  // true
+map.remove("bob");
+
+// 빈도 카운팅
+String[] words = {"a", "b", "a", "c", "a"};
+HashMap<String,Integer> freq = new HashMap<>();
+for (String w : words)
+    freq.merge(w, 1, Integer::sum);
+System.out.println(freq.get("a"));  // 3`,
+      cpp: `#include <unordered_map>
+#include <string>
+#include <iostream>
+
+int main() {
+    std::unordered_map<std::string,int> map;
+    map["alice"] = 95; map["bob"] = 87; map["carol"] = 92;
+
+    std::cout << map["alice"];      // 95
+    std::cout << map.count("bob");  // 1 (키 존재)
+    map.erase("bob");
+
+    // 빈도 카운팅
+    std::string words[] = {"a", "b", "a", "c", "a"};
+    std::unordered_map<std::string,int> freq;
+    for (auto& w : words) freq[w]++;
+    std::cout << freq["a"];  // 3
+}`,
+      csharp: `var map = new Dictionary<string,int> {
+    ["alice"] = 95, ["bob"] = 87, ["carol"] = 92
+};
+
+Console.WriteLine(map["alice"]);            // 95
+Console.WriteLine(map.ContainsKey("bob"));  // True
+map.Remove("bob");
+
+// 빈도 카운팅
+string[] words = { "a", "b", "a", "c", "a" };
+var freq = new Dictionary<string,int>();
+foreach (var w in words)
+    freq[w] = freq.GetValueOrDefault(w) + 1;
+Console.WriteLine(freq["a"]);  // 3`,
     },
     useCases: ['Python dict, JS Map', '중복 검사·빈도 카운팅', 'DB 해시 인덱스', 'LRU 캐시'],
   },
@@ -1187,6 +1792,95 @@ function dfs(v, vis=new Set()){
   for(const u of graph.get(v)||[])
     if(!vis.has(u)) dfs(u,vis);
 }`,
+      java: `import java.util.*;
+
+Map<Integer,List<Integer>> graph = new HashMap<>();
+int[][] edges = {{1,2},{1,3},{2,4},{3,4},{4,5}};
+for (int[] e : edges) {                            // 무향 간선
+    graph.computeIfAbsent(e[0], k -> new ArrayList<>()).add(e[1]);
+    graph.computeIfAbsent(e[1], k -> new ArrayList<>()).add(e[0]);
+}
+
+// BFS — 너비 우선
+static void bfs(Map<Integer,List<Integer>> g, int start) {
+    Set<Integer> visited = new HashSet<>(Set.of(start));
+    Queue<Integer> q = new LinkedList<>(List.of(start));
+    while (!q.isEmpty()) {
+        int v = q.poll();
+        System.out.print(v + " ");
+        for (int u : g.getOrDefault(v, List.of()))
+            if (visited.add(u)) q.offer(u);
+    }
+}
+
+// DFS — 깊이 우선 (재귀)
+static void dfs(Map<Integer,List<Integer>> g, int v, Set<Integer> vis) {
+    vis.add(v);
+    System.out.print(v + " ");
+    for (int u : g.getOrDefault(v, List.of()))
+        if (!vis.contains(u)) dfs(g, u, vis);
+}`,
+      cpp: `#include <vector>
+#include <queue>
+#include <set>
+#include <iostream>
+
+std::vector<int> graph[6];   // 인접 리스트 (정점 1~5)
+
+void addEdge(int u, int v) { // 무향 간선
+    graph[u].push_back(v);
+    graph[v].push_back(u);
+}
+
+// BFS — 너비 우선
+void bfs(int start) {
+    std::set<int> visited{start};
+    std::queue<int> q;
+    q.push(start);
+    while (!q.empty()) {
+        int v = q.front(); q.pop();
+        std::cout << v << ' ';
+        for (int u : graph[v])
+            if (visited.insert(u).second) q.push(u);
+    }
+}
+
+// DFS — 깊이 우선 (재귀)
+void dfs(int v, std::set<int>& vis) {
+    vis.insert(v);
+    std::cout << v << ' ';
+    for (int u : graph[v])
+        if (!vis.count(u)) dfs(u, vis);
+}`,
+      csharp: `var graph = new Dictionary<int,List<int>>();
+void AddEdge(int u, int v) {          // 무향 간선
+    if (!graph.ContainsKey(u)) graph[u] = new List<int>();
+    if (!graph.ContainsKey(v)) graph[v] = new List<int>();
+    graph[u].Add(v); graph[v].Add(u);
+}
+foreach (var (u, v) in new[] { (1,2), (1,3), (2,4), (3,4), (4,5) })
+    AddEdge(u, v);
+
+// BFS — 너비 우선
+void Bfs(int start) {
+    var visited = new HashSet<int> { start };
+    var q = new Queue<int>();
+    q.Enqueue(start);
+    while (q.Count > 0) {
+        int v = q.Dequeue();
+        Console.Write(v + " ");
+        foreach (int u in graph[v])
+            if (visited.Add(u)) q.Enqueue(u);
+    }
+}
+
+// DFS — 깊이 우선 (재귀)
+void Dfs(int v, HashSet<int> vis) {
+    vis.Add(v);
+    Console.Write(v + " ");
+    foreach (int u in graph[v])
+        if (!vis.Contains(u)) Dfs(u, vis);
+}`,
     },
     useCases: ['소셜 네트워크', '지도·경로 탐색', '웹 크롤링', '컴파일러 의존성 분석'],
   },
@@ -1295,6 +1989,84 @@ function dijkstra(start, V) {
       if(dist[u]+w<dist[v])dist[v]=dist[u]+w;
   }
   return dist;
+}`,
+      java: `import java.util.*;
+
+// 인접 리스트: graph.get(u) = [{이웃, 가중치}, ...]
+Map<Integer,List<int[]>> graph = new HashMap<>();
+int[][] edges = {{1,2,4},{1,3,1},{2,4,1},{3,2,2},{3,4,5},{4,5,3}};
+for (int[] e : edges) {
+    graph.computeIfAbsent(e[0], k -> new ArrayList<>()).add(new int[]{e[1], e[2]});
+    graph.computeIfAbsent(e[1], k -> new ArrayList<>()).add(new int[]{e[0], e[2]});
+}
+
+// Dijkstra — 우선순위 큐로 O((V+E) log V)
+static int[] dijkstra(Map<Integer,List<int[]>> g, int src, int n) {
+    int[] dist = new int[n + 1];
+    Arrays.fill(dist, Integer.MAX_VALUE);
+    dist[src] = 0;
+    PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> a[1] - b[1]);
+    pq.offer(new int[]{src, 0});           // {정점, 거리}
+    while (!pq.isEmpty()) {
+        int[] cur = pq.poll();
+        int u = cur[0];
+        if (cur[1] > dist[u]) continue;
+        for (int[] nx : g.getOrDefault(u, List.of()))
+            if (dist[u] + nx[1] < dist[nx[0]]) {
+                dist[nx[0]] = dist[u] + nx[1];
+                pq.offer(new int[]{nx[0], dist[nx[0]]});
+            }
+    }
+    return dist;
+}`,
+      cpp: `#include <vector>
+#include <queue>
+#include <climits>
+
+using P = std::pair<int,int>;   // {거리, 정점}
+std::vector<P> graph[6];        // graph[u] = {이웃, 가중치}
+
+// Dijkstra — Min-Heap으로 O((V+E) log V)
+std::vector<int> dijkstra(int src, int n) {
+    std::vector<int> dist(n + 1, INT_MAX);
+    dist[src] = 0;
+    std::priority_queue<P, std::vector<P>, std::greater<P>> pq;
+    pq.push({0, src});
+    while (!pq.empty()) {
+        auto [d, u] = pq.top(); pq.pop();
+        if (d > dist[u]) continue;
+        for (auto [v, w] : graph[u])
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                pq.push({dist[v], v});
+            }
+    }
+    return dist;
+}`,
+      csharp: `// 인접 리스트: graph[u] = [(이웃, 가중치), ...]
+var graph = new Dictionary<int,List<(int v, int w)>>();
+void AddEdge(int u, int v, int w) {
+    if (!graph.ContainsKey(u)) graph[u] = new();
+    if (!graph.ContainsKey(v)) graph[v] = new();
+    graph[u].Add((v, w)); graph[v].Add((u, w));
+}
+
+// Dijkstra — PriorityQueue로 O((V+E) log V)
+int[] Dijkstra(int src, int n) {
+    var dist = new int[n + 1];
+    Array.Fill(dist, int.MaxValue);
+    dist[src] = 0;
+    var pq = new PriorityQueue<int, int>();  // 정점, 거리
+    pq.Enqueue(src, 0);
+    while (pq.Count > 0) {
+        int u = pq.Dequeue();
+        foreach (var (v, w) in graph[u])
+            if (dist[u] != int.MaxValue && dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                pq.Enqueue(v, dist[v]);
+            }
+    }
+    return dist;
 }`,
     },
     useCases: ['네비게이션 최단 경로', '네트워크 라우팅', '지하철 환승 최적화', '전력망 MST'],
@@ -1425,6 +2197,89 @@ function quickSort(arr,lo=0,hi=arr.length-1){
   [arr[i],arr[hi]]=[arr[hi],arr[i]];
   quickSort(arr,lo,i-1); quickSort(arr,i+1,hi);
 }`,
+      java: `// 버블 정렬 — 최악 O(n²), 최선 O(n)
+static void bubble(int[] arr) {
+    for (int i = 0; i < arr.length; i++) {
+        boolean swapped = false;
+        for (int j = 0; j < arr.length - i - 1; j++)
+            if (arr[j] > arr[j + 1]) {
+                int t = arr[j]; arr[j] = arr[j + 1]; arr[j + 1] = t;
+                swapped = true;
+            }
+        if (!swapped) break;   // 교환 없으면 정렬 완료
+    }
+}
+
+// 퀵 정렬 — 평균 O(n log n)
+static void quickSort(int[] arr, int lo, int hi) {
+    if (lo >= hi) return;
+    int pivot = arr[hi], p = lo;
+    for (int i = lo; i < hi; i++)
+        if (arr[i] <= pivot) {
+            int t = arr[i]; arr[i] = arr[p]; arr[p] = t; p++;
+        }
+    int t = arr[p]; arr[p] = arr[hi]; arr[hi] = t;
+    quickSort(arr, lo, p - 1);
+    quickSort(arr, p + 1, hi);
+}
+
+// 표준 라이브러리 — Arrays.sort (Dual-Pivot Quicksort / Tim Sort)`,
+      cpp: `#include <algorithm>
+#include <vector>
+
+// 버블 정렬 — 최악 O(n²), 최선 O(n)
+void bubble(std::vector<int>& arr) {
+    int n = arr.size();
+    for (int i = 0; i < n; i++) {
+        bool swapped = false;
+        for (int j = 0; j < n - i - 1; j++)
+            if (arr[j] > arr[j + 1]) {
+                std::swap(arr[j], arr[j + 1]);
+                swapped = true;
+            }
+        if (!swapped) break;   // 교환 없으면 정렬 완료
+    }
+}
+
+// 퀵 정렬 — 평균 O(n log n)
+void quickSort(std::vector<int>& arr, int lo, int hi) {
+    if (lo >= hi) return;
+    int pivot = arr[hi], p = lo;
+    for (int i = lo; i < hi; i++)
+        if (arr[i] <= pivot) std::swap(arr[i], arr[p++]);
+    std::swap(arr[p], arr[hi]);
+    quickSort(arr, lo, p - 1);
+    quickSort(arr, p + 1, hi);
+}
+
+// 표준 라이브러리 — std::sort (introsort: quick+heap+insertion)`,
+      csharp: `// 버블 정렬 — 최악 O(n²), 최선 O(n)
+void Bubble(int[] arr) {
+    for (int i = 0; i < arr.Length; i++) {
+        bool swapped = false;
+        for (int j = 0; j < arr.Length - i - 1; j++)
+            if (arr[j] > arr[j + 1]) {
+                (arr[j], arr[j + 1]) = (arr[j + 1], arr[j]);
+                swapped = true;
+            }
+        if (!swapped) break;   // 교환 없으면 정렬 완료
+    }
+}
+
+// 퀵 정렬 — 평균 O(n log n)
+void QuickSort(int[] arr, int lo, int hi) {
+    if (lo >= hi) return;
+    int pivot = arr[hi], p = lo;
+    for (int i = lo; i < hi; i++)
+        if (arr[i] <= pivot) {
+            (arr[i], arr[p]) = (arr[p], arr[i]); p++;
+        }
+    (arr[p], arr[hi]) = (arr[hi], arr[p]);
+    QuickSort(arr, lo, p - 1);
+    QuickSort(arr, p + 1, hi);
+}
+
+// 표준 라이브러리 — Array.Sort (introsort)`,
     },
     useCases: ['데이터베이스 ORDER BY', '이진 탐색 전처리', '우선순위 스케줄링', '외부 정렬(대용량 파일)'],
   },
